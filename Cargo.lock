@@ -3919,6 +3919,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "prisma-client-rust-sdk"
+version = "0.5.1"
+source = "git+https://github.com/Brendonovich/prisma-client-rust.git?branch=sdk#e07fefcaaee6dbd962d6e77091f77af850473c03"
+dependencies = [
+ "convert_case 0.5.0",
+ "datamodel",
+ "directories",
+ "flate2",
+ "http",
+ "prisma-models",
+ "proc-macro2",
+ "query-core",
+ "quote",
+ "regex",
+ "request-handlers",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "syn",
+]
+
+[[package]]
+name = "prisma-crdt"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "prisma-client-rust-sdk 0.5.1 (git+https://github.com/Brendonovich/prisma-client-rust.git?branch=sdk)",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uhlc",
+ "uuid 1.1.0",
+]
+
+[[package]]
 name = "prisma-inflector"
 version = "0.1.0"
 source = "git+https://github.com/Brendonovich/prisma-engines?rev=5d34c9a567aaec4065a48d8cf6c2ee885e6ca281#5d34c9a567aaec4065a48d8cf6c2ee885e6ca281"
@@ -6142,6 +6179,12 @@ name = "unicode-ident"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "15c61ba63f9235225a22310255a29b806b907c9b8c964bcbd0a2c70f3f2deea7"
+
+[[package]]
+name = "unicode-ident"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d22af068fba1eb5edcb4aea19d382b2a3deb4c8f9d475c589b6ada9e0fd493ee"
 
 [[package]]
 name = "unicode-normalization"
