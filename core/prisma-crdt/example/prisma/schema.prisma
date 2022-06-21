@@ -90,7 +90,7 @@ model Location {
 
 /// @owned(owner: location)
 model FilePath {
-    id Int
+    id Int 
 
     location_id Int
     location    Location @relation(fields: [location_id], references: [local_id])
@@ -109,6 +109,10 @@ model FilePath {
     @@map("file_paths")
 }
 
+/// A unique record that can represent multiple physical copies of a file.
+/// Existence is implied based on an equivalent file path existing, and could be
+/// created multiple times.
+///
 /// @shared(id: cas_id)
 model File {
     local_id Int   @id @default(autoincrement())
@@ -120,10 +124,10 @@ model File {
     @@map("files")
 }
 
-/// @shared
+/// @shared(id: id)
 model Tag {
     local_id Int   @id @default(autoincrement())
-    id       Bytes @unique /// @sync_id()
+    id       Bytes @unique
 
     name String @default("")
 

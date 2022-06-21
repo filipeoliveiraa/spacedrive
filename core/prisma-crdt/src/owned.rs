@@ -5,7 +5,9 @@ use crate::SerializedField;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OwnedOperation {
+	#[serde(rename = "m")]
 	pub model: String,
+	#[serde(rename = "d")]
 	pub data: Vec<OwnedOperationData>,
 }
 

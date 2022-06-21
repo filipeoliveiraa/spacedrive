@@ -23,7 +23,9 @@ use crate::{Id, SerializedField};
 /// Deleting a shared record uses the operation's `record_id` and `model` to identify the record and delete.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SharedOperation {
+	#[serde(rename = "r")]
 	pub record_id: Id, // Uuid,
+	#[serde(rename = "m")]
 	pub model: String,
 	#[serde(flatten)]
 	pub data: SharedOperationData,
@@ -42,7 +44,7 @@ impl SharedOperation {
 		SharedOperation::new(
 			record_id,
 			model.to_string(),
-			SharedOperationData::Create { data },
+			SharedOperationData::Create(data),
 		)
 	}
 
@@ -55,19 +57,22 @@ impl SharedOperation {
 	}
 
 	pub fn new_delete(record_id: Id, model: &str) -> Self {
-		SharedOperation::new(
-			record_id,
-			model.to_string(),
-			SharedOperationData::Delete,
-		)
+		SharedOperation::new(record_id, model.to_string(), SharedOperationData::Delete)
 	}
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
 pub enum SharedOperationData {
-	Create { data: Map<String, Value> },
-	Update { field: String, value: Value },
+	#[serde(rename = "c")]
+	Create(Map<String, Value>),
+	#[serde(rename = "u")]
+	Update {
+		#[serde(rename = "f")]
+		field: String,
+		#[serde(rename = "v")]
+		value: Value,
+	},
+	#[serde(rename = "d")]
 	Delete,
 }
 

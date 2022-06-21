@@ -70,6 +70,20 @@ async fn producer_example(client: PrismaClient, node: prisma::node::Data) {
 		.exec()
 		.await
 		.unwrap();
+
+	let file = client.file().create(vec![0], vec![]).exec().await.unwrap();
+
+	client
+		.file_path()
+		.update(
+			prisma::file_path::location_id_id(data.location_id, data.id),
+			vec![prisma_crdt::file_path::SetParam::SetFileId(Some(
+				file.local_id,
+			))],
+		)
+		.exec()
+		.await
+		.unwrap();
 }
 
 async fn consumer_example(client: PrismaClient, node: prisma::node::Data) {
@@ -78,21 +92,15 @@ async fn consumer_example(client: PrismaClient, node: prisma::node::Data) {
 	client
 		._execute_operation(
 			serde_json::from_value(json!({
-			  "node": [
-				1
-			  ],
-			  "timestamp": 0,
-			  "model": "Location",
-			  "data": [
-				{
-				  "c": {
-					"id": [
-					  0
-					],
-					"name": "Location 0"
-				  }
-				}
-			  ]
+				"n": [0],
+				"t": 0,
+				"m": "Location",
+				"d": [{
+					"c": {
+						"id": [0],
+						"name": "Location 0"
+					}
+				}]
 			}))
 			.unwrap(),
 		)
@@ -101,22 +109,49 @@ async fn consumer_example(client: PrismaClient, node: prisma::node::Data) {
 	client
 		._execute_operation(
 			serde_json::from_value(json!({
-			  "node": [
-				1
-			  ],
-			  "timestamp": 0,
-			  "model": "FilePath",
-			  "data": [
-				{
-				  "c": {
-					"id": 0,
-					"location_id": [
-					  0
-					],
-					"name": "File 0"
-				  }
-				}
-			  ]
+				"n": [0],
+				"t": 0,
+				"m": "FilePath",
+				"d": [{
+					"c": {
+						"id": 0,
+						"location_id": [0],
+						"name": "File 0"
+					}
+				}]
+			}))
+			.unwrap(),
+		)
+		.await;
+
+	client
+		._execute_operation(
+			serde_json::from_value(json!({
+			  "n": [0],
+			  "t": 0,
+			  "r": [0],
+			  "m": "File",
+			  "c": {}
+			}))
+			.unwrap(),
+		)
+		.await;
+
+	client
+		._execute_operation(
+			serde_json::from_value(json!({
+				"n": [0],
+				"t": 0,
+				"m": "FilePath",
+				"d": [{
+					"u": {
+						"id": 0,
+						"location_id": [0],
+						"_": [{
+							"file_id": 1
+						}]
+					}
+				}]
 			}))
 			.unwrap(),
 		)
@@ -124,4 +159,5 @@ async fn consumer_example(client: PrismaClient, node: prisma::node::Data) {
 
 	dbg!(client.location().find_many(vec![]).exec().await);
 	dbg!(client.file_path().find_many(vec![]).exec().await);
+	dbg!(client.file().find_many(vec![]).exec().await);
 }

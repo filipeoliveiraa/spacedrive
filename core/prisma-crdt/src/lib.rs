@@ -22,7 +22,9 @@ pub type Id = Vec<u8>;
 /// that state.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CRDTOperation {
+	#[serde(rename = "n")]
 	pub node: Id,
+	#[serde(rename = "t")]
 	pub timestamp: NTP64, // HLC
 	#[serde(flatten)]
 	pub typ: CRDTOperationType,

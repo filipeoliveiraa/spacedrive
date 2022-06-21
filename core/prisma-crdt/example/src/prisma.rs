@@ -19,7 +19,7 @@ pub use prisma_client_rust::{queries::Error as QueryError, NewClientError};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
-static DATAMODEL_STR : & 'static str = "datasource db {\n    provider = \"sqlite\"\n    url      = \"file:dev.db\"\n}\n\ngenerator client {\n    provider = \"cargo prisma\"\n    output   = \"../src/prisma.rs\"\n}\n\n// generator crdt {\n//     provider = \"cargo prisma-crdt\"\n//     output   = \"../src/_prisma-crdt.rs\"\n// }\n\n/// @local\nmodel OwnedOperation {\n    id        Int   @id @default(autoincrement())\n    timestamp Bytes\n    data      Bytes\n\n    node_id Int\n    node    Node @relation(fields: [node_id], references: [local_id])\n\n    @@map(\"shared_operations\")\n}\n\n/// @local\nmodel SharedOperation {\n    id        Int   @id @default(autoincrement())\n    timestamp Bytes\n    record_id Bytes\n\n    // the type of operation - c, u{field name}, d\n    kind String\n    data Bytes\n\n    node_id Int\n    node    Node @relation(fields: [node_id], references: [local_id])\n\n    @@map(\"relation_operation\")\n}\n\n/// @local\nmodel RelationOperation {\n    id        Int   @id @default(autoincrement())\n    timestamp Bytes\n\n    relation       String\n    relation_item  Bytes\n    relation_group Bytes\n\n    kind String\n    data Bytes\n\n    node_id Int\n    node    Node @relation(fields: [node_id], references: [local_id])\n}\n\n/// @local(id: id)\nmodel Node {\n    local_id Int   @id @default(autoincrement())\n    id       Bytes @unique\n\n    name String\n\n    locations Location[]\n\n    owned_operations    OwnedOperation[]\n    shared_operations   SharedOperation[]\n    relation_operations RelationOperation[]\n\n    @@map(\"nodes\")\n}\n\n// @owned(owner: node, id: id)\nmodel Location {\n    local_id Int   @id @default(autoincrement())\n    id       Bytes @unique\n\n    node_id Int\n    node    Node @relation(fields: [node_id], references: [local_id]) /// @node\n\n    name String\n\n    file_paths FilePath[]\n\n    @@map(\"locations\")\n}\n\n/// @owned(owner: location)\nmodel FilePath {\n    id Int\n\n    location_id Int\n    location    Location @relation(fields: [location_id], references: [local_id])\n\n    parent_id Int?\n    parent    FilePath? @relation(\"directory_file_paths\", fields: [location_id, parent_id], references: [location_id, id])\n\n    file_id Int?\n    File    File? @relation(fields: [file_id], references: [local_id])\n\n    name String\n\n    children FilePath[] @relation(\"directory_file_paths\")\n\n    @@id([location_id, id])\n    @@map(\"file_paths\")\n}\n\n/// @shared(id: cas_id)\nmodel File {\n    local_id Int   @id @default(autoincrement())\n    cas_id   Bytes @unique\n\n    file_paths FilePath[]\n    TagOnFile  TagOnFile[]\n\n    @@map(\"files\")\n}\n\n/// @shared\nmodel Tag {\n    local_id Int   @id @default(autoincrement())\n    id       Bytes @unique /// @sync_id()\n\n    name String @default(\"\")\n\n    TagOnFile TagOnFile[]\n    @@map(\"tags\")\n}\n\n/// @relation(item: file, group: tag)\nmodel TagOnFile {\n    tag_id Int\n    tag    Tag @relation(fields: [tag_id], references: [local_id])\n\n    file_id Int\n    file    File @relation(fields: [file_id], references: [local_id])\n\n    @@id([tag_id, file_id])\n    @@map(\"tags_on_files\")\n}\n" ;
+static DATAMODEL_STR : & 'static str = "datasource db {\n    provider = \"sqlite\"\n    url      = \"file:dev.db\"\n}\n\ngenerator client {\n    provider = \"cargo prisma\"\n    output   = \"../src/prisma.rs\"\n}\n\n// generator crdt {\n//     provider = \"cargo prisma-crdt\"\n//     output   = \"../src/_prisma-crdt.rs\"\n// }\n\n/// @local\nmodel OwnedOperation {\n    id        Int   @id @default(autoincrement())\n    timestamp Bytes\n    data      Bytes\n\n    node_id Int\n    node    Node @relation(fields: [node_id], references: [local_id])\n\n    @@map(\"shared_operations\")\n}\n\n/// @local\nmodel SharedOperation {\n    id        Int   @id @default(autoincrement())\n    timestamp Bytes\n    record_id Bytes\n\n    // the type of operation - c, u{field name}, d\n    kind String\n    data Bytes\n\n    node_id Int\n    node    Node @relation(fields: [node_id], references: [local_id])\n\n    @@map(\"relation_operation\")\n}\n\n/// @local\nmodel RelationOperation {\n    id        Int   @id @default(autoincrement())\n    timestamp Bytes\n\n    relation       String\n    relation_item  Bytes\n    relation_group Bytes\n\n    kind String\n    data Bytes\n\n    node_id Int\n    node    Node @relation(fields: [node_id], references: [local_id])\n}\n\n/// @local(id: id)\nmodel Node {\n    local_id Int   @id @default(autoincrement())\n    id       Bytes @unique\n\n    name String\n\n    locations Location[]\n\n    owned_operations    OwnedOperation[]\n    shared_operations   SharedOperation[]\n    relation_operations RelationOperation[]\n\n    @@map(\"nodes\")\n}\n\n// @owned(owner: node, id: id)\nmodel Location {\n    local_id Int   @id @default(autoincrement())\n    id       Bytes @unique\n\n    node_id Int\n    node    Node @relation(fields: [node_id], references: [local_id]) /// @node\n\n    name String\n\n    file_paths FilePath[]\n\n    @@map(\"locations\")\n}\n\n/// @owned(owner: location)\nmodel FilePath {\n    id Int \n\n    location_id Int\n    location    Location @relation(fields: [location_id], references: [local_id])\n\n    parent_id Int?\n    parent    FilePath? @relation(\"directory_file_paths\", fields: [location_id, parent_id], references: [location_id, id])\n\n    file_id Int?\n    File    File? @relation(fields: [file_id], references: [local_id])\n\n    name String\n\n    children FilePath[] @relation(\"directory_file_paths\")\n\n    @@id([location_id, id])\n    @@map(\"file_paths\")\n}\n\n/// A unique record that can represent multiple physical copies of a file.\n/// Existence is implied based on an equivalent file path existing, and could be\n/// created multiple times.\n///\n/// @shared(id: cas_id)\nmodel File {\n    local_id Int   @id @default(autoincrement())\n    cas_id   Bytes @unique\n\n    file_paths FilePath[]\n    TagOnFile  TagOnFile[]\n\n    @@map(\"files\")\n}\n\n/// @shared(id: id)\nmodel Tag {\n    local_id Int   @id @default(autoincrement())\n    id       Bytes @unique\n\n    name String @default(\"\")\n\n    TagOnFile TagOnFile[]\n    @@map(\"tags\")\n}\n\n/// @relation(item: file, group: tag)\nmodel TagOnFile {\n    tag_id Int\n    tag    Tag @relation(fields: [tag_id], references: [local_id])\n\n    file_id Int\n    file    File @relation(fields: [file_id], references: [local_id])\n\n    @@id([tag_id, file_id])\n    @@map(\"tags_on_files\")\n}\n" ;
 static DATABASE_STR: &'static str = "sqlite";
 pub async fn new_client() -> Result<_prisma::PrismaClient, NewClientError> {
 	let config = parse_configuration(DATAMODEL_STR)?.subject;
@@ -770,7 +770,7 @@ pub mod owned_operation {
 	>;
 	pub type FindFirst<'a> =
 		prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
 	pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
 	pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
 	pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
@@ -1768,7 +1768,7 @@ pub mod shared_operation {
 	>;
 	pub type FindFirst<'a> =
 		prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
 	pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
 	pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
 	pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
@@ -3017,7 +3017,7 @@ pub mod relation_operation {
 	>;
 	pub type FindFirst<'a> =
 		prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
 	pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
 	pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
 	pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
@@ -4181,7 +4181,7 @@ pub mod node {
 	>;
 	pub type FindFirst<'a> =
 		prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
 	pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
 	pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
 	pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
@@ -5169,7 +5169,7 @@ pub mod location {
 	>;
 	pub type FindFirst<'a> =
 		prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
 	pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
 	pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
 	pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
@@ -6642,7 +6642,7 @@ pub mod file_path {
 	>;
 	pub type FindFirst<'a> =
 		prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
 	pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
 	pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
 	pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
@@ -7364,7 +7364,7 @@ pub mod file {
 	>;
 	pub type FindFirst<'a> =
 		prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
 	pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
 	pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
 	pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
@@ -8090,7 +8090,7 @@ pub mod tag {
 	>;
 	pub type FindFirst<'a> =
 		prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
 	pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
 	pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
 	pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
@@ -8793,7 +8793,7 @@ pub mod tag_on_file {
 	>;
 	pub type FindFirst<'a> =
 		prisma_client_rust::FindFirst<'a, WhereParam, WithParam, OrderByParam, Cursor, Data>;
-	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, SetParam, WithParam, Data>;
+	pub type Update<'a> = prisma_client_rust::Update<'a, WhereParam, WithParam, SetParam, Data>;
 	pub type UpdateMany<'a> = prisma_client_rust::UpdateMany<'a, WhereParam, SetParam>;
 	pub type Upsert<'a> = prisma_client_rust::Upsert<'a, WhereParam, SetParam, WithParam, Data>;
 	pub type Delete<'a> = prisma_client_rust::Delete<'a, WhereParam, WithParam, Data>;
