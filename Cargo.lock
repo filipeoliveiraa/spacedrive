@@ -3967,7 +3967,10 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "futures",
- "prisma-client-rust-sdk 0.5.1",
+ "nom",
+ "prisma-client-rust-sdk",
+ "proc-macro2",
+ "quote",
  "serde",
  "serde_json",
  "tokio",
