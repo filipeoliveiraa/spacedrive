@@ -90,7 +90,7 @@ impl CoreContext {
 	}
 	pub fn queue_job(&self, job: Box<dyn Job>) {
 		self.internal_sender
-			.send(InternalEvent::JobIngest(job))
+			.send(InternalEvent::JobQueue(job))
 			.unwrap_or_else(|e| {
 				println!("Failed to queue job. {:?}", e);
 			});
@@ -260,17 +260,16 @@ impl Node {
 				CoreResponse::Success(())
 			}
 			ClientCommand::LocDelete { id } => {
-				ctx.database
-					.location()
-					.find_unique(location::id::equals(id))
-					.delete()
-					.exec()
-					.await?;
-
+				sys::delete_location(&ctx, id).await?;
+				CoreResponse::Success(())
+			}
+			ClientCommand::LocRescan { id } => {
+				sys::scan_location(&ctx, id, String::new());
 				CoreResponse::Success(())
 			}
 			// CRUD for files
 			ClientCommand::FileReadMetaData { id: _ } => todo!(),
+			ClientCommand::FileSetNote { id, note } => file::set_note(ctx, id, note).await?,
 			// ClientCommand::FileEncrypt { id: _, algorithm: _ } => todo!(),
 			ClientCommand::FileDelete { id } => {
 				ctx.database
@@ -367,9 +366,8 @@ impl Node {
 #[ts(export)]
 pub enum ClientCommand {
 	// Files
-	FileReadMetaData {
-		id: i32,
-	},
+	FileReadMetaData { id: i32 },
+	FileSetNote { id: i32, note: Option<String> },
 	// FileEncrypt { id: i32, algorithm: EncryptionAlgorithm },
 	FileDelete {
 		id: i32,
@@ -402,16 +400,10 @@ pub enum ClientCommand {
 		name_starts_with: Option<String>,
 	},
 	// Locations
-	LocCreate {
-		path: String,
-	},
-	LocUpdate {
-		id: i32,
-		name: Option<String>,
-	},
-	LocDelete {
-		id: i32,
-	},
+	LocCreate { path: String },
+	LocUpdate { id: i32, name: Option<String> },
+	LocDelete { id: i32 },
+	LocRescan { id: i32 },
 	// System
 	SysVolumeUnmount {
 		id: i32,
