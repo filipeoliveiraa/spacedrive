@@ -119,16 +119,37 @@ pub async fn update_tag(
 	Ok(CoreResponse::Success(()))
 }
 
+pub async fn tag_unassign(
+	ctx: CoreContext,
+	file_id: i32,
+	tag_id: i32,
+) -> Result<CoreResponse, CoreError> {
+	ctx.database
+		.tag_on_file()
+		.find_unique(tag_on_file::tag_id_file_id(tag_id, file_id))
+		.delete()
+		.exec()
+		.await
+		.unwrap();
+
+	Ok(CoreResponse::Success(()))
+}
+
 pub async fn tag_assign(
 	ctx: CoreContext,
 	file_id: i32,
 	tag_id: i32,
 ) -> Result<CoreResponse, CoreError> {
-	ctx.database.tag_on_file().create(
-		tag_on_file::tag::link(tag::UniqueWhereParam::IdEquals(tag_id)),
-		tag_on_file::file::link(file::UniqueWhereParam::IdEquals(file_id)),
-		vec![],
-	);
+	ctx.database
+		.tag_on_file()
+		.create(
+			tag_on_file::tag::link(tag::id::equals(tag_id)),
+			tag_on_file::file::link(file::id::equals(file_id)),
+			vec![],
+		)
+		.exec()
+		.await
+		.unwrap();
 
 	Ok(CoreResponse::Success(()))
 }

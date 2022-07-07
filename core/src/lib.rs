@@ -286,6 +286,9 @@ impl Node {
 			ClientCommand::TagAssign { file_id, tag_id } => {
 				tag::tag_assign(ctx, file_id, tag_id).await?
 			}
+			ClientCommand::TagUnassign { file_id, tag_id } => {
+				tag::tag_unassign(ctx, file_id, tag_id).await?
+			}
 			ClientCommand::TagDelete { id } => tag::tag_delete(ctx, id).await?,
 			ClientCommand::TagUpdate { id, name, color } => {
 				tag::update_tag(ctx, id, name, color).await?
@@ -366,8 +369,13 @@ impl Node {
 #[ts(export)]
 pub enum ClientCommand {
 	// Files
-	FileReadMetaData { id: i32 },
-	FileSetNote { id: i32, note: Option<String> },
+	FileReadMetaData {
+		id: i32,
+	},
+	FileSetNote {
+		id: i32,
+		note: Option<String>,
+	},
 	// FileEncrypt { id: i32, algorithm: EncryptionAlgorithm },
 	FileDelete {
 		id: i32,
@@ -390,6 +398,10 @@ pub enum ClientCommand {
 		file_id: i32,
 		tag_id: i32,
 	},
+	TagUnassign {
+		file_id: i32,
+		tag_id: i32,
+	},
 	TagDelete {
 		id: i32,
 	},
@@ -400,10 +412,19 @@ pub enum ClientCommand {
 		name_starts_with: Option<String>,
 	},
 	// Locations
-	LocCreate { path: String },
-	LocUpdate { id: i32, name: Option<String> },
-	LocDelete { id: i32 },
-	LocRescan { id: i32 },
+	LocCreate {
+		path: String,
+	},
+	LocUpdate {
+		id: i32,
+		name: Option<String>,
+	},
+	LocDelete {
+		id: i32,
+	},
+	LocRescan {
+		id: i32,
+	},
 	// System
 	SysVolumeUnmount {
 		id: i32,
