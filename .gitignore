@@ -18,6 +18,7 @@ vendor/
 dist
 data
 node_modules
+.pnpm-store/
 packages/turbo-server/data/
 packages/turbo-server/uploads/
 packages/*/node_modules
