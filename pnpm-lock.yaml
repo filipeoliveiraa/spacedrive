@@ -89,6 +89,7 @@ importers:
       '@types/react-helmet': ^6.1.5
       '@types/tryghost__content-api': ^1.3.10
       '@vitejs/plugin-react': ^1.2.0
+      airtable: ^0.11.4
       autoprefixer: ^10.4.7
       clsx: ^1.1.1
       compression: ^1.7.4
@@ -128,6 +129,7 @@ importers:
       '@tailwindcss/typography': 0.5.2
       '@tryghost/content-api': 1.11.0
       '@vitejs/plugin-react': 1.3.2
+      airtable: 0.11.4
       clsx: 1.1.1
       compression: 1.7.4
       cross-env: 7.0.3
@@ -5255,6 +5257,10 @@ packages:
       form-data: 3.0.1
     dev: true
 
+  /@types/node/14.18.21:
+    resolution: {integrity: sha512-x5W9s+8P4XteaxT/jKF0PSb7XEvo5VmqEWgsMlyeY4ZlLK8I6aH6g5TPPyDlLAep+GYf4kefb7HFyc7PAO3m+Q==}
+    dev: false
+
   /@types/node/16.11.40:
     resolution: {integrity: sha512-7bOWglXUO6f21NG3YDI7hIpeMX3M59GG+DzZuzX2EkFKYUnRoxq3EOg4R0KNv2hxryY9M3UUqG5akwwsifrukw==}
     dev: true
@@ -5761,6 +5767,17 @@ packages:
     resolution: {integrity: sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==}
     dev: true
 
+  /abort-controller/3.0.0:
+    resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
+    engines: {node: '>=6.5'}
+    dependencies:
+      event-target-shim: 5.0.1
+    dev: false
+
+  /abortcontroller-polyfill/1.7.3:
+    resolution: {integrity: sha512-zetDJxd89y3X99Kvo4qFx8GKlt6GsvN3UcRZHwU6iFA/0KiOmhkTVhe8oRoTBiTVPZu09x3vCra47+w8Yz1+2Q==}
+    dev: false
+
   /accepts/1.3.8:
     resolution: {integrity: sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw==}
     engines: {node: '>= 0.6'}
@@ -5850,6 +5867,19 @@ packages:
       string.prototype.padstart: 3.1.3
       symbol.prototype.description: 1.0.5
     dev: true
+
+  /airtable/0.11.4:
+    resolution: {integrity: sha512-y8sEi/sMEdgtgvv0V8AhJyFQB9za+6qGIxllt60Ey5ELBgu+bNEc1hjY2aqzp9C38p0ORfaeRS5RSFWlcq11Aw==}
+    engines: {node: '>=8.0.0'}
+    dependencies:
+      '@types/node': 14.18.21
+      abort-controller: 3.0.0
+      abortcontroller-polyfill: 1.7.3
+      lodash: 4.17.21
+      node-fetch: 2.6.7
+    transitivePeerDependencies:
+      - encoding
+    dev: false
 
   /ajv-errors/1.0.1_ajv@6.12.6:
     resolution: {integrity: sha512-DCRfO/4nQ+89p/RK43i8Ezd41EqdGIU4ld7nGF8OQ14oc/we5rEntLCUa7+jrn3nn83BosfwZA0wb4pon2o8iQ==}
@@ -6603,6 +6633,8 @@ packages:
       qs: 6.5.2
       raw-body: 2.3.3
       type-is: 1.6.18
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /body-parser/1.20.0:
@@ -6621,6 +6653,8 @@ packages:
       raw-body: 2.5.1
       type-is: 1.6.18
       unpipe: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
 
   /boolbase/1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
@@ -7417,6 +7451,8 @@ packages:
       on-headers: 1.0.2
       safe-buffer: 5.1.2
       vary: 1.1.2
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /compression/1.7.4:
@@ -7430,6 +7466,8 @@ packages:
       on-headers: 1.0.2
       safe-buffer: 5.1.2
       vary: 1.1.2
+    transitivePeerDependencies:
+      - supports-color
 
   /concat-map/0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
@@ -7862,6 +7900,11 @@ packages:
 
   /debug/2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
     dependencies:
       ms: 2.0.0
 
@@ -7869,6 +7912,18 @@ packages:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
     dependencies:
       ms: 2.1.3
+    dev: true
+
+  /debug/3.2.7_supports-color@5.5.0:
+    resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
+    dependencies:
+      ms: 2.1.3
+      supports-color: 5.5.0
     dev: true
 
   /debug/4.3.4:
@@ -8776,6 +8831,11 @@ packages:
     resolution: {integrity: sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==}
     engines: {node: '>= 0.6'}
 
+  /event-target-shim/5.0.1:
+    resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
+    engines: {node: '>=6'}
+    dev: false
+
   /eventemitter2/5.0.1:
     resolution: {integrity: sha512-5EM1GHXycJBS6mauYAbVKT1cVs7POKWb2NXD4Vyt8dDqeZa7LaDK1/sjtL+Zb0lzTpSNil4596Dyu97hz37QLg==}
     dev: true
@@ -8915,6 +8975,8 @@ packages:
       type-is: 1.6.18
       utils-merge: 1.0.1
       vary: 1.1.2
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /express/4.18.1:
@@ -8952,6 +9014,8 @@ packages:
       type-is: 1.6.18
       utils-merge: 1.0.1
       vary: 1.1.2
+    transitivePeerDependencies:
+      - supports-color
 
   /ext-list/2.2.2:
     resolution: {integrity: sha512-u+SQgsubraE6zItfVA0tBuCBhfU9ogSRnsvygI7wht9TS510oLkBRXBsqopeUG/GBOIQyKZO9wjTqIu/sf5zFA==}
@@ -9233,6 +9297,8 @@ packages:
       parseurl: 1.3.3
       statuses: 1.4.0
       unpipe: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /finalhandler/1.2.0:
@@ -9246,6 +9312,8 @@ packages:
       parseurl: 1.3.3
       statuses: 2.0.1
       unpipe: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
 
   /find-cache-dir/2.1.0:
     resolution: {integrity: sha512-Tq6PixE0w/VMFfCgbONnkiQIVol/JJL7nRMi20fqzA4NRs9AfeqMGeRdPi3wIhYkxjeBaWh2rxwapn5Tu3IqOQ==}
@@ -12112,6 +12180,8 @@ packages:
       depd: 1.1.2
       on-finished: 2.3.0
       on-headers: 1.0.2
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /move-concurrently/1.0.1:
@@ -12186,6 +12256,9 @@ packages:
       rimraf: 2.7.1
       tracer: 0.8.15
       ws: 2.3.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
     dev: true
 
   /negotiator/0.6.3:
@@ -12297,7 +12370,7 @@ packages:
     requiresBuild: true
     dependencies:
       chokidar: 3.5.3
-      debug: 3.2.7
+      debug: 3.2.7_supports-color@5.5.0
       ignore-by-default: 1.0.1
       minimatch: 3.1.2
       pstree.remy: 1.1.8
@@ -14789,6 +14862,8 @@ packages:
       on-finished: 2.3.0
       range-parser: 1.2.1
       statuses: 1.4.0
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /send/0.18.0:
@@ -14808,6 +14883,8 @@ packages:
       on-finished: 2.4.1
       range-parser: 1.2.1
       statuses: 2.0.1
+    transitivePeerDependencies:
+      - supports-color
 
   /serialize-error/7.0.1:
     resolution: {integrity: sha512-8I8TjW5KMOKsZQTvoxjuSIa7foAwPWGOts+6o7sgjz41/qMD9VQHEDxi6PBvK2l0MXUmqZyNpUK+T2tQaaElvw==}
@@ -14853,6 +14930,8 @@ packages:
       escape-html: 1.0.3
       parseurl: 1.3.3
       send: 0.16.2
+    transitivePeerDependencies:
+      - supports-color
     dev: true
 
   /serve-static/1.15.0:
@@ -14863,6 +14942,8 @@ packages:
       escape-html: 1.0.3
       parseurl: 1.3.3
       send: 0.18.0
+    transitivePeerDependencies:
+      - supports-color
 
   /set-blocking/2.0.0:
     resolution: {integrity: sha512-KiKBS8AnWGEyLzofFfmvKwpdPzqiy16LvQfK3yv/fVH7Bj13/wl3JSR1J+rfgRE9q7xUJK4qvgS8raSOeLUehw==}
@@ -15562,6 +15643,10 @@ packages:
       timer2: 1.0.0
       uuidv4: 3.0.1
       ws: 6.2.0
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
     dev: true
 
   /tailwindcss/3.1.3:
@@ -17022,7 +17107,7 @@ packages:
       vite: ^2.6.0
     dependencies:
       '@svgr/core': 6.2.1
-      vite: 2.9.9
+      vite: 2.9.9_sass@1.52.1
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -17378,6 +17463,14 @@ packages:
 
   /ws/2.3.1:
     resolution: {integrity: sha512-61a+9LgtYZxTq1hAonhX8Xwpo2riK4IOR/BIVxioFbCfc3QFKmpE4x9dLExfLHKtUfVZigYa36tThVhO57erEw==}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: ^5.0.2
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
     dependencies:
       safe-buffer: 5.0.1
       ultron: 1.1.1
@@ -17385,6 +17478,14 @@ packages:
 
   /ws/6.2.0:
     resolution: {integrity: sha512-deZYUNlt2O4buFCa3t5bKLf8A7FPP/TVjwOeVNpw818Ma5nk4MLXls2eoEGS39o8119QIYxTrTDoPQ5B/gTD6w==}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: ^5.0.2
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
     dependencies:
       async-limiter: 1.0.1
     dev: true

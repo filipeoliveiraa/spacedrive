@@ -10,10 +10,34 @@ import {
 	TrendingUpIcon
 } from '@heroicons/react/outline';
 import { Button } from '@sd/ui';
+import Airtable from 'airtable';
 import { Heartbeat } from 'phosphor-react';
 import React from 'react';
 import { Helmet } from 'react-helmet';
 import { ReactComponent as Content } from '~/docs/changelog/index.md';
+
+interface Position {
+	title: string;
+	description: string;
+	salary: string;
+	type: string;
+}
+
+const fetchPositions = async () =>
+	(
+		await Airtable.base('Spacedrive Jobs')
+			.table('Positions')
+			.select({
+				fields: ['Title', 'Description', 'Salary', 'Type'],
+				filterByFormula: 'Public = TRUE()'
+			})
+			.all()
+	).map<Position>(({ get }) => ({
+		title: get('Title'),
+		description: get('Description'),
+		salary: get('Salary'),
+		type: get('Type')
+	}));
 
 export const positions = [
 	{
@@ -166,7 +190,7 @@ function Page() {
 						{positions.map((value) => (
 							<div className="flex flex-col p-10 bg-opacity-50 border border-gray-500 rounded-md bg-gray-550">
 								<div className="flex flex-col sm:flex-row">
-									<h2 className="m-0">{value.name}</h2>
+									<h2 className="m-0">{value.title}</h2>
 									<div className="mt-3 sm:mt-0.5">
 										<span className="text-sm font-semibold text-gray-300 sm:ml-4">
 											<CurrencyDollarIcon className="inline w-4 mr-1 -mt-1" />
