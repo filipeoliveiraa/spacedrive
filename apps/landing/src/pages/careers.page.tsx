@@ -11,54 +11,27 @@ import {
 } from '@heroicons/react/outline';
 import { Button } from '@sd/ui';
 import Airtable from 'airtable';
-import { Heartbeat } from 'phosphor-react';
 import React from 'react';
 import { Helmet } from 'react-helmet';
-import { ReactComponent as Content } from '~/docs/changelog/index.md';
 
 interface Position {
-	title: string;
-	description: string;
-	salary: string;
-	type: string;
+	Title: string;
+	Description: string;
+	Salary: string;
+	Type: string;
 }
 
-const fetchPositions = async () =>
-	(
-		await Airtable.base('Spacedrive Jobs')
-			.table('Positions')
-			.select({
-				fields: ['Title', 'Description', 'Salary', 'Type'],
-				filterByFormula: 'Public = TRUE()'
-			})
-			.all()
-	).map<Position>(({ get }) => ({
-		title: get('Title'),
-		description: get('Description'),
-		salary: get('Salary'),
-		type: get('Type')
-	}));
+const fetchPositions = async (): Promise<ReadonlyArray<Position>> =>
+	(await Airtable.base('Spacedrive Jobs')
+		.table('Positions')
+		.select({
+			fields: ['Title', 'Description', 'Salary', 'Type'],
+			filterByFormula: 'Public = TRUE()'
+		})
+		// forgive me for the harm i have caused this world. none may atone for my actions but me, and only in me shall their stain move on. i am thankful to have been caught, my fall cut short by those with wizened hands. all i can be is sorry, and that is all that i am. (this is a reference to the Break Room scene in Severance, i promise i'm not crazy)
+		// TODO: remove this `any` cast when airtable fixes their TypeShit
+		.all()) as any;
 
-export const positions = [
-	{
-		name: 'TypeScript React UI/UX Engineer',
-		type: 'Full-time',
-		salary: '$80k - $120k',
-		description: `You'll build the primary desktop interface for Spacedrive in React, with TypeScript and Tailwind. You'll need an eye for design as well as a solid understanding of the React ecosystem.`
-	},
-	{
-		name: 'Rust Backend Engineer',
-		type: 'Full-time',
-		salary: '$80k - $120k',
-		description: `You'll build out our Rust core, the decentralized backend that powers our app. From the virtual filesystem to encryption and search. You'll need to live and breathe Rust, not be afraid to get low-level.`
-	},
-	{
-		name: 'TypeScript React Native Engineer',
-		type: 'Full-time',
-		salary: '$80k - $120k',
-		description: `You'll build out the majority of our mobile app in TypeScript and React Native. Developing a mobile first component library based on the design of our desktop application. You'll need to be passionate for building React Native apps that look and feel native.`
-	}
-];
 const values = [
 	{
 		title: 'Async',
@@ -121,7 +94,9 @@ const perks = [
 	}
 ];
 
-function Page() {
+const Page: React.FC<{ positions: Position[] }> = (props) => {
+	const { positions } = props;
+
 	const openPositionsRef = React.useRef<HTMLHRElement>(null);
 	const scrollToPositions = () => openPositionsRef.current?.scrollIntoView({ behavior: 'smooth' });
 
@@ -190,19 +165,19 @@ function Page() {
 						{positions.map((value) => (
 							<div className="flex flex-col p-10 bg-opacity-50 border border-gray-500 rounded-md bg-gray-550">
 								<div className="flex flex-col sm:flex-row">
-									<h2 className="m-0">{value.title}</h2>
+									<h2 className="m-0">{value.Title}</h2>
 									<div className="mt-3 sm:mt-0.5">
 										<span className="text-sm font-semibold text-gray-300 sm:ml-4">
 											<CurrencyDollarIcon className="inline w-4 mr-1 -mt-1" />
-											{value.salary}
+											{value.Salary}
 										</span>
 										<span className="ml-4 text-sm font-semibold text-gray-300">
 											<ClockIcon className="inline w-4 mr-1 -mt-1" />
-											{value.type}
+											{value.Type}
 										</span>
 									</div>
 								</div>
-								<p className="mt-3 mb-0 text-gray-350">{value.description}</p>
+								<p className="mt-3 mb-0 text-gray-350">{value.Description}</p>
 							</div>
 						))}
 					</div>
@@ -218,6 +193,6 @@ function Page() {
 			</div>
 		</>
 	);
-}
+};
 
 export default Page;
