@@ -5,7 +5,14 @@ import { Statistics } from '@sd/core';
 import { Button, Input } from '@sd/ui';
 import byteSize from 'byte-size';
 import clsx from 'clsx';
-import React, { useContext, useEffect, useState } from 'react';
+import React, {
+	useCallback,
+	useContext,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useState
+} from 'react';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import create from 'zustand';
@@ -18,6 +25,7 @@ interface StatItemProps {
 	bytes: string;
 
 	isLoading: boolean;
+	id: string;
 }
 
 const StatItemNames: Partial<Record<keyof Statistics, string>> = {
@@ -29,13 +37,17 @@ const StatItemNames: Partial<Record<keyof Statistics, string>> = {
 
 type OverviewStats = Partial<Record<keyof Statistics, string>>;
 type OverviewState = {
+	preventAnimation: boolean;
 	overviewStats: OverviewStats;
+	setPreventAnimation: (preventAnimation: boolean) => void;
 	setOverviewStat: (name: keyof OverviewStats, newValue: string) => void;
 	setOverviewStats: (stats: OverviewStats) => void;
 };
 
 export const useOverviewState = create<OverviewState>((set) => ({
+	preventAnimation: false,
 	overviewStats: {},
+	setPreventAnimation: (value: boolean) => set((state) => ({ ...state, preventAnimation: value })),
 	setOverviewStat: (name, newValue) =>
 		set((state) => ({
 			...state,
@@ -51,26 +63,99 @@ export const useOverviewState = create<OverviewState>((set) => ({
 		}))
 }));
 
-function quadratic(duration: number, range: number, current: number) {
+// function quadratic(duration: number, range: number, current: number) {
+// 	return ((duration * 3) / Math.pow(range, 3)) * Math.pow(current, 2);
+// }
+
+function quadratic(duration: number, from: number, to: number, current: number) {
+	const range = Math.abs(to - from);
+	current = Math.abs(to - current);
+
 	return ((duration * 3) / Math.pow(range, 3)) * Math.pow(current, 2);
 }
 
+const useStatItemStates = create<{
+	statItemValues: Map<string, number>;
+	setStatItemValue(key: string, value: number): void;
+}>((set) => ({
+	statItemValues: new Map<string, number>(),
+	setStatItemValue: (name, value) =>
+		set((state) => ({
+			...state,
+			statItemValues: state.statItemValues.set(name, value)
+		}))
+}));
+
+const useStatItemState = (key: string) => {
+	const { statItemValues, setStatItemValue } = useStatItemStates();
+
+	const setValue = useCallback(
+		(val: number) => {
+			setStatItemValue(key, val);
+		},
+		[key]
+	);
+
+	return {
+		value: statItemValues.get(key) || 0,
+		setValue
+	};
+};
+
 const StatItem: React.FC<StatItemProps> = (props) => {
 	const { title, bytes = '0', isLoading } = props;
-
 	const appProps = useContext(AppPropsContext);
 
 	const size = byteSize(+bytes);
 
-	const [count, setCount] = useState(0);
+	const { value: from, setValue: setFrom } = useStatItemState(props.id);
+	const [current, setCurrent] = useState(from);
 
 	useEffect(() => {
-		if (count < +size.value) {
-			setTimeout(() => {
-				setCount((count) => count + 1);
-			}, quadratic(appProps?.demoMode ? 1000 : 500, +size.value, count));
-		}
-	}, [count, size]);
+		let to = +size.value;
+
+		setFrom(to);
+
+		let timeout: number;
+
+		let update = () => {
+			setCurrent((current) => {
+				if (current == to) return to;
+
+				current = Math.max(Math.min(current + +(to > current), to), current);
+
+				timeout = setTimeout(update, quadratic(appProps?.demoMode ? 1000 : 500, from, to, current));
+
+				return current;
+			});
+		};
+
+		timeout = setTimeout(update, quadratic(appProps?.demoMode ? 1000 : 500, from, to, current));
+
+		return () => clearTimeout(timeout);
+	}, [+size.value]);
+
+	// useEffect(() => {
+	// 	if (preventAnimation) {
+	// 		// directly update count instead of animating
+	// 		setCount(+size.value);
+	// 		// revert preventAnimation back if prevent measure was taken
+	// 		if (preventAnimation) setPreventAnimation(false);
+	// 	} else {
+	// 		// count animation
+	// 		if (count < +size.value) {
+	// 			setTimeout(() => {
+	// 				setCount((count) => count + 1);
+	// 			}, quadratic(appProps?.demoMode ? 1000 : 500, +size.value, count));
+	// 		} else if (count > +size.value) {
+	// 			setTimeout(() => {
+	// 				setCount((count) => count - 1);
+	// 			}, quadratic(appProps?.demoMode ? 1000 : 500, +size.value, count));
+	// 		} else {
+	// 			// animation done
+	// 		}
+	// 	}
+	// }, [count, size, preventAnimation]);
 
 	return (
 		<div
@@ -79,6 +164,7 @@ const StatItem: React.FC<StatItemProps> = (props) => {
 				!+bytes && 'hidden'
 			)}
 		>
+			{/* {JSON.stringify(preventAnimation)} */}
 			<span className="text-sm text-gray-400">{title}</span>
 			<span className="text-2xl font-bold">
 				{isLoading && (
@@ -91,7 +177,7 @@ const StatItem: React.FC<StatItemProps> = (props) => {
 						hidden: isLoading
 					})}
 				>
-					<span className="tabular-nums">{count}</span>
+					<span className="tabular-nums">{current}</span>
 					<span className="ml-1 text-[16px] text-gray-400">{size.unit}</span>
 				</div>
 			</span>
@@ -102,12 +188,18 @@ const StatItem: React.FC<StatItemProps> = (props) => {
 export const OverviewScreen = () => {
 	const { data: libraryStatistics, isLoading: isStatisticsLoading } =
 		useLibraryQuery('GetLibraryStatistics');
-	const { data: nodeState } = useBridgeQuery('NodeGetState');
+	// const { data: nodeState } = useBridgeQuery('NodeGetState');
 
-	const { overviewStats, setOverviewStats } = useOverviewState();
+	const { overviewStats, preventAnimation, setOverviewStats, setPreventAnimation } =
+		useOverviewState();
 
 	// get app props from context
 	const appProps = useContext(AppPropsContext);
+
+	// on overview unmount, prevent animation
+	// useEffect(() => {
+	// 	return () => setPreventAnimation(true);
+	// }, []);
 
 	useEffect(() => {
 		if (appProps?.demoMode === true) {
@@ -153,6 +245,7 @@ export const OverviewScreen = () => {
 			<div data-tauri-drag-region className="flex flex-shrink-0 w-full h-5" />
 			{/* PAGE */}
 			<div className="flex flex-col w-full h-screen px-4">
+				{JSON.stringify({ preventAnimation })}
 				{/* STAT HEADER */}
 				<div className="flex w-full">
 					{/* STAT CONTAINER */}
@@ -173,6 +266,7 @@ export const OverviewScreen = () => {
 							return (
 								<StatItem
 									key={key}
+									id={key}
 									title={StatItemNames[key as keyof Statistics]!}
 									bytes={value}
 									isLoading={appProps?.demoMode === true ? false : isStatisticsLoading}
