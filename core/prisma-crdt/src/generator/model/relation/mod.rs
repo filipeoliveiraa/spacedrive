@@ -2,6 +2,7 @@ use crate::generator::prelude::*;
 
 use super::sync_id::scalar_field_to_crdt;
 
+/// Generates the struct definition for a relation's key
 pub fn relation_key_definition(field: FieldRef, struct_name: TokenStream) -> TokenStream {
 	let fields = match &field.typ {
 		FieldType::Relation { relation_info } => relation_info.fields.iter().map(|rel_field| {
@@ -26,6 +27,7 @@ pub fn relation_key_definition(field: FieldRef, struct_name: TokenStream) -> Tok
 	}
 }
 
+/// Generates a constructor for a relation's key
 pub fn relation_key_constructor(field: FieldRef, struct_name: TokenStream) -> TokenStream {
 	let key_args = match &field.typ {
 		FieldType::Relation { relation_info } => relation_info.fields.iter().map(|rel_field| {
@@ -47,5 +49,60 @@ pub fn relation_key_constructor(field: FieldRef, struct_name: TokenStream) -> To
 		#struct_name {
 			#(#key_args),*
 		}
+	}
+}
+
+/// Generates the body for a relation model's `Create::exec` function
+/// 
+/// ## Example
+///
+/// ```
+/// let relation_item = RelationItem { .. };
+///
+/// let relation_group = RelationGroup { .. };
+///
+/// self
+///     .crdt_client
+///     ._create_operation(::prisma_crdt::CRDTOperationType::relation(
+///         #model_name_str,
+///         ::prisma_crdt::objectify(relation_item),
+///         ::prisma_crdt::objectify(relation_group),
+///         ::prisma_crdt::RelationOperationData::create()
+///     ))
+///     .await;
+/// ```
+pub fn create_exec_body(model: ModelRef) -> TokenStream {
+	let model_name_str = &model.name;
+
+	let (relation_item_block, relation_group_block) = match &model.typ {
+		ModelType::Relation { item, group } => {
+			let relation_item_block = relation_key_constructor(
+				model.field(item.at_index(0).unwrap()).unwrap(),
+				quote!(RelationItem),
+			);
+			let relation_group_block = relation_key_constructor(
+				model.field(group.at_index(0).unwrap()).unwrap(),
+				quote!(RelationGroup),
+			);
+
+			(relation_item_block, relation_group_block)
+		}
+		_ => unreachable!(),
+	};
+
+	quote! {
+        let relation_item = #relation_item_block;
+
+        let relation_group = #relation_group_block;
+
+        self
+            .crdt_client
+            ._create_operation(::prisma_crdt::CRDTOperationType::relation(
+                #model_name_str,
+                ::prisma_crdt::objectify(relation_item),
+                ::prisma_crdt::objectify(relation_group),
+                ::prisma_crdt::RelationOperationData::create()
+            ))
+            .await;
 	}
 }

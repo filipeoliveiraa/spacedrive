@@ -2,7 +2,40 @@ use crate::generator::prelude::*;
 
 use super::create;
 
-pub fn generate(model: ModelRef) -> TokenStream {
+/// Generates struct definition for a model's `Actions` struct
+///
+/// ## Example
+///
+/// ```
+/// pub struct Actions<'a> {
+///     client: &'a super::_prisma::PrismaCRDTClient
+/// }
+///
+/// impl<'a> Actions<'a> {
+///     pub(super) fn new(client: &'a super::_prisma::PrismaCRDTClient) -> Self {
+///         Self { client }
+///     }
+///
+///     pub fn create(..) {
+///         ..
+///     }
+///
+///     pub fn find_unique(
+///         self,
+///         param: crate::prisma::#model::UniqueWhereParam
+///     ) -> crate::prisma::#model::FindUnique<'a> {
+///         self.client.client.#model().find_unique(param)
+///     }
+///
+///     pub fn find_many(
+///         self,
+///         params: Vec<crate::prisma::#model::WhereParam>
+///     ) -> crate::prisma::#model::FindMany<'a> {
+///         self.client.client.#model().find_many(params)
+///     }
+/// }
+/// ```
+pub fn definition(model: ModelRef) -> TokenStream {
 	let name = snake_ident(&model.name);
 
     let create_fn = create::action_method(model);

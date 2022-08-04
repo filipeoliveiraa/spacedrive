@@ -170,6 +170,17 @@ pub fn scalar_field_to_crdt(
 	}
 }
 
+/// Generates a definition of a model's `SyncID` struct
+///
+/// ## Example
+///
+/// ```
+/// #[derive(Clone, ::serde::Serialize, ::serde::Deserialize)]
+/// pub struct SyncID {
+///     pub id: i32,
+///     pub location_id: Vec<u8>
+/// }
+/// ```
 pub fn definition(model: ModelRef) -> TokenStream {
 	let sync_id_fields = model.scalar_sync_id_fields(&model.datamodel).map(|field| {
 		let field_type = field.1.crdt_type_tokens(&model.datamodel);

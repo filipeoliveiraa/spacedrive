@@ -6,6 +6,8 @@ pub mod set_param;
 pub mod sync_id;
 pub mod update;
 pub mod relation;
+pub mod shared;
+pub mod owned;
 
 use crate::generator::prelude::*;
 
@@ -42,11 +44,11 @@ pub fn generate(model: ModelRef) -> TokenStream {
 	let sync_id_struct = sync_id::definition(model);
 	let create_params = create_params::definition(model);
 
-	let create_struct = create::struct_def(model);
-	let update_struct = update::generate(&model);
-	let delete_struct = delete::generate(&model);
+	let create_struct = create::struct_definition(model);
+	// let update_struct = update::generate(&model);
+	// let delete_struct = delete::generate(&model);
 
-	let actions_struct = actions::generate(model);
+	let actions_struct = actions::definition(model);
 
 	quote!(
 		pub mod #model_name_snake {

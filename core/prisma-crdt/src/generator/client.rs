@@ -1,5 +1,6 @@
 use crate::generator::prelude::*;
 
+/// Generates the `_create_operation` function for the CRDT client
 fn create_operation_fn() -> TokenStream {
 	quote! {
 		pub async fn _create_operation(&self, typ: ::prisma_crdt::CRDTOperationType) {
@@ -87,8 +88,9 @@ fn create_operation_fn() -> TokenStream {
 	}
 }
 
+/// Generates action getters for each model for the CRDT Client
 fn actions_accessors(datamodel: DatamodelRef) -> Vec<TokenStream> {
-	datamode
+	datamodel
 		.models
 		.iter()
 		.map(|model| {
@@ -110,6 +112,39 @@ fn actions_accessors(datamodel: DatamodelRef) -> Vec<TokenStream> {
 		.collect()
 }
 
+/// Generates the `_prisma` module and its `PrismaCRDTClient` struct
+///
+/// ## Example
+///
+/// ```
+/// mod _prisma {
+///     pub struct PrismaCRDTClient {
+///         pub(super) client: crate::prisma::PrismaClient,
+///         pub node_id: Vec<u8>,
+///         pub node_local_id: i32,
+///         operation_sender: ::tokio::sync::mpsc::Sender<::prisma_crdt::CRDTOperation>
+///     }
+///
+///     impl PrismaCRDTClient {
+///         pub(super) fn _new(
+///             client: crate::prisma::PrismaClient,
+///             (node_id, node_local_id): Vec<u8, i32>,
+///             operation_sender: ::tokio::sync::mpsc::Sender<::prisma_crdt::CRDTOperation>
+///         ) -> Self {
+///             Self {
+///                 client,
+///                 operation_sender,
+///                 node_id,
+///                 node_local_id
+///             }
+///         }
+///
+///         pub async fn _create_operation(..) { .. }
+///
+///         ..
+///     }
+/// }
+/// ```
 pub fn generate(datamodel: DatamodelRef) -> TokenStream {
 	let create_operation_fn = create_operation_fn();
 
