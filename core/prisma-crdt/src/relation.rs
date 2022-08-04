@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, Map};
-
-use crate::Id;
+use serde_json::{Map, Value};
 
 /// An operation on a many relation CRDT.
 /// Many relations are identified by their `relation` (db table),

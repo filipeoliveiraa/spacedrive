@@ -1,4 +1,4 @@
-use std::{ops::Deref, rc::Weak};
+use std::ops::Deref;
 
 use crate::prelude::*;
 
@@ -34,11 +34,11 @@ impl<'a> Field<'a> {
 		match relation_field_info.as_ref() {
 			Some(relation_field_info) => {
 				let relation_model = datamodel
-					.model(&relation_field_info.referenced_model)
+					.model(relation_field_info.referenced_model)
 					.unwrap();
 
 				let sync_id_field =
-					relation_model.sync_id_for_pk(&relation_field_info.referenced_field);
+					relation_model.sync_id_for_pk(relation_field_info.referenced_field);
 
 				match sync_id_field {
 					Some(field) => {
@@ -66,7 +66,7 @@ impl<'a> Field<'a> {
 impl<'a> Deref for Field<'a> {
 	type Target = dml::Field;
 	fn deref(&self) -> &Self::Target {
-		&self.prisma
+		self.prisma
 	}
 }
 
@@ -105,8 +105,8 @@ impl<'a> FieldType<'a> {
 									datamodel
 										.models()
 										.find(|relation_model| {
-											&relation_model.name
-												== &relation_field_data.relation_info.to
+											relation_model.name
+												== relation_field_data.relation_info.to
 										})
 										.and_then(|relation_model| {
 											relation_model

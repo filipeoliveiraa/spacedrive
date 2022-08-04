@@ -6,8 +6,7 @@ pub use model::*;
 
 use crate::prelude::*;
 
-pub const OPERATION_MODELS: &'static [&'static str] =
-	&["OwnedOperation", "SharedOperation", "RelationOperation"];
+pub const OPERATION_MODELS: &[&str] = &["OwnedOperation", "SharedOperation", "RelationOperation"];
 
 pub struct Datamodel<'a> {
 	pub prisma: &'a dml::Datamodel,
@@ -16,7 +15,7 @@ pub struct Datamodel<'a> {
 
 impl<'a> Datamodel<'a> {
 	pub fn model(&self, name: &str) -> Option<&'a Model> {
-		self.models.iter().find(|m| &m.name == name)
+		self.models.iter().find(|m| m.name == name)
 	}
 }
 

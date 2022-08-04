@@ -47,11 +47,7 @@ pub fn definition(model: ModelRef) -> TokenStream {
 
 	let required_crdt_create_params = required_scalar_fields
 		.iter()
-		.filter(|f| {
-			scalar_sync_id_fields
-				.find(|sf| sf.0.name() == f.name())
-				.is_none()
-		})
+		.filter(|f| !scalar_sync_id_fields.any(|sf| sf.0.name() == f.name()))
 		.map(|field| {
 			let field_type = field.crdt_type_tokens(&model.datamodel);
 			let field_name_snake = snake_ident(field.name());
@@ -85,8 +81,6 @@ pub fn definition(model: ModelRef) -> TokenStream {
 /// name: String, profile_id: i32, _params: Vec<SetParam>
 /// ```
 pub fn args(model: ModelRef, namespace: Option<TokenStream>) -> Vec<TokenStream> {
-	let model_name_snake = snake_ident(&model.name);
-
 	let mut required_args = model
 		.required_scalar_fields()
 		.into_iter()
@@ -96,7 +90,7 @@ pub fn args(model: ModelRef, namespace: Option<TokenStream>) -> Vec<TokenStream>
 			let typ = match &field.field_type() {
 				dml::FieldType::Scalar(_, _, _) => field.type_tokens(),
 				dml::FieldType::Enum(e) => {
-					let enum_name_pascal = pascal_ident(&e);
+					let enum_name_pascal = pascal_ident(e);
 
 					quote!(#(#namespace::)super::#enum_name_pascal)
 				}
@@ -116,7 +110,7 @@ pub fn args(model: ModelRef, namespace: Option<TokenStream>) -> Vec<TokenStream>
 /// that assumes all required fields have been declared beforehand.
 ///
 /// ## Example
-/// 
+///
 /// ```
 /// CreateParams {
 ///     name,
@@ -131,10 +125,10 @@ pub fn constructor(model: ModelRef) -> TokenStream {
 		.map(|field| snake_ident(field.name()));
 
 	quote! {
-        CreateParams {
-            #(#required_args,)*
-            _params
-        }
+		CreateParams {
+			#(#required_args,)*
+			_params
+		}
 	}
 }
 

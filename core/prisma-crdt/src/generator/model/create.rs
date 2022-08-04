@@ -1,15 +1,12 @@
 use crate::generator::prelude::*;
 
-use super::{
-	create_params, owned,
-	shared, relation,
-};
+use super::{create_params, owned, relation, shared};
 
 /// Generates a call to the underlying Prisma client's `create` method for
 /// the given model
 ///
 /// ## Example
-/// 
+///
 /// ```
 /// self
 ///     .crdt_client
@@ -45,7 +42,7 @@ pub fn prisma_create(model: ModelRef) -> TokenStream {
                     if relation_info.fields.len() == 1 {
                         let relation_field_snake = snake_ident(&relation_info.fields[0]);
                         let referenced_field_snake = snake_ident(&relation_info.references[0]);
-                        
+
                         quote!(crate::prisma::#relation_model_snake::#referenced_field_snake::equals(self.set_params.#relation_field_snake.clone()))
                     } else {
                         todo!()
@@ -72,7 +69,7 @@ pub fn prisma_create(model: ModelRef) -> TokenStream {
 /// Generates the definition for a model's `Create` struct
 ///
 /// ## Example
-/// 
+///
 /// ```
 /// pub struct Create<'a> {
 ///     crdt_client: &'a super::_prisma::PrismaCRDTClient,

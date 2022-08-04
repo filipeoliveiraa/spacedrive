@@ -38,7 +38,7 @@ use super::create;
 pub fn definition(model: ModelRef) -> TokenStream {
 	let name = snake_ident(&model.name);
 
-    let create_fn = create::action_method(model);
+	let create_fn = create::action_method(model);
 
 	quote! {
 		pub struct Actions<'a> {
@@ -50,7 +50,7 @@ pub fn definition(model: ModelRef) -> TokenStream {
 				Self { client }
 			}
 
-            #create_fn
+			#create_fn
 
 			pub fn find_unique(
 				self,
@@ -65,7 +65,7 @@ pub fn definition(model: ModelRef) -> TokenStream {
 			) -> crate::prisma::#name::FindMany<'a> {
 				self.client.client.#name().find_many(params)
 			}
-			
+
 			// pub fn update(
 			// 	self,
 			// 	_where: crate::prisma::#name::UniqueWhereParam,

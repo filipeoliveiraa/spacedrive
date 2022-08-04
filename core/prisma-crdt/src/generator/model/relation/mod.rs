@@ -7,10 +7,10 @@ pub fn relation_key_definition(field: FieldRef, struct_name: TokenStream) -> Tok
 	let fields = match &field.typ {
 		FieldType::Relation { relation_info } => relation_info.fields.iter().map(|rel_field| {
 			let field_name_snake = snake_ident(rel_field);
-			let field = field.model.field(rel_field).expect(&format!(
-				"Model {} has no field {}",
-				field.model.name, rel_field
-			));
+			let field = field
+				.model
+				.field(rel_field)
+				.unwrap_or_else(|| panic!("Model {} has no field {}", field.model.name, rel_field));
 
 			let field_type = field.crdt_type_tokens(&field.datamodel);
 
@@ -53,7 +53,7 @@ pub fn relation_key_constructor(field: FieldRef, struct_name: TokenStream) -> To
 }
 
 /// Generates the body for a relation model's `Create::exec` function
-/// 
+///
 /// ## Example
 ///
 /// ```
@@ -91,18 +91,18 @@ pub fn create_exec_body(model: ModelRef) -> TokenStream {
 	};
 
 	quote! {
-        let relation_item = #relation_item_block;
+		let relation_item = #relation_item_block;
 
-        let relation_group = #relation_group_block;
+		let relation_group = #relation_group_block;
 
-        self
-            .crdt_client
-            ._create_operation(::prisma_crdt::CRDTOperationType::relation(
-                #model_name_str,
-                ::prisma_crdt::objectify(relation_item),
-                ::prisma_crdt::objectify(relation_group),
-                ::prisma_crdt::RelationOperationData::create()
-            ))
-            .await;
+		self
+			.crdt_client
+			._create_operation(::prisma_crdt::CRDTOperationType::relation(
+				#model_name_str,
+				::prisma_crdt::objectify(relation_item),
+				::prisma_crdt::objectify(relation_group),
+				::prisma_crdt::RelationOperationData::create()
+			))
+			.await;
 	}
 }

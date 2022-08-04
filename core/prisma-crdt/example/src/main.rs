@@ -8,7 +8,7 @@ use prisma::PrismaClient;
 use serde_json::json;
 
 #[tokio::main]
-async fn main() {	
+async fn main() {
 	let client = prisma::new_client().await.unwrap();
 
 	let node_0 = client
@@ -38,7 +38,8 @@ async fn main() {
 }
 
 async fn producer_example(client: PrismaClient, node: prisma::node::Data) {
-	let (client, mut op_receiver) = prisma_crdt::new_client(client, node.id.clone(), node.local_id).await;
+	let (client, mut op_receiver) =
+		prisma_crdt::new_client(client, node.id.clone(), node.local_id).await;
 
 	let task = tokio::spawn(async move {
 		while let Some(op) = op_receiver.recv().await {
@@ -67,15 +68,15 @@ async fn producer_example(client: PrismaClient, node: prisma::node::Data) {
 		.await
 		.unwrap();
 
-// 	client
-// 		.file_path()
-// 		.update(
-// 			prisma_crdt::file_path::location_id_id(file_path.location_id, file_path.id),
-// 			vec![prisma_crdt::file_path::file_id::set(Some(file.local_id))],
-// 		)
-// 		.exec()
-// 		.await
-// 		.unwrap();
+	// 	client
+	// 		.file_path()
+	// 		.update(
+	// 			prisma_crdt::file_path::location_id_id(file_path.location_id, file_path.id),
+	// 			vec![prisma_crdt::file_path::file_id::set(Some(file.local_id))],
+	// 		)
+	// 		.exec()
+	// 		.await
+	// 		.unwrap();
 
 	let tag = client
 		.tag()
@@ -91,36 +92,36 @@ async fn producer_example(client: PrismaClient, node: prisma::node::Data) {
 		.await
 		.unwrap();
 
-// 	client
-// 		.tag()
-// 		.delete(prisma_crdt::tag::local_id::equals(tag.local_id))
-// 		.exec()
-// 		.await
-// 		.unwrap();
+	// 	client
+	// 		.tag()
+	// 		.delete(prisma_crdt::tag::local_id::equals(tag.local_id))
+	// 		.exec()
+	// 		.await
+	// 		.unwrap();
 
-// 	client
-// 		.file_path()
-// 		.delete(prisma_crdt::file_path::location_id_id(
-// 			file_path.location_id,
-// 			file_path.id,
-// 		))
-// 		.exec()
-// 		.await
-// 		.unwrap();
+	// 	client
+	// 		.file_path()
+	// 		.delete(prisma_crdt::file_path::location_id_id(
+	// 			file_path.location_id,
+	// 			file_path.id,
+	// 		))
+	// 		.exec()
+	// 		.await
+	// 		.unwrap();
 
-// 	client
-// 		.file()
-// 		.delete(prisma_crdt::file::local_id::equals(file.local_id))
-// 		.exec()
-// 		.await
-// 		.unwrap();
+	// 	client
+	// 		.file()
+	// 		.delete(prisma_crdt::file::local_id::equals(file.local_id))
+	// 		.exec()
+	// 		.await
+	// 		.unwrap();
 
-// 	client
-// 		.location()
-// 		.delete(prisma_crdt::location::local_id::equals(location.local_id))
-// 		.exec()
-// 		.await
-// 		.unwrap();
+	// 	client
+	// 		.location()
+	// 		.delete(prisma_crdt::location::local_id::equals(location.local_id))
+	// 		.exec()
+	// 		.await
+	// 		.unwrap();
 }
 
 // async fn consumer_example(client: PrismaClient, node: prisma::node::Data) {

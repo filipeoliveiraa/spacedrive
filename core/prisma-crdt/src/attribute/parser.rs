@@ -32,7 +32,7 @@ where
 	i.split_at_position1_complete(
 		|item| {
 			let char_item = item.as_char();
-			!(char_item == '_') && !char_item.is_alphanum()
+			char_item != '_' && !char_item.is_alphanum()
 		},
 		ErrorKind::AlphaNumeric,
 	)

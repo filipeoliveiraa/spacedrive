@@ -57,14 +57,18 @@ pub fn constructor(model: ModelRef, data_var: TokenStream) -> TokenStream {
 				.map(|f| {
 					model
 						.field(f)
-						.expect(&format!("{} has no field {}", model.name, f))
+						.unwrap_or_else(|| panic!("{} has no field {}", model.name, f))
 				})
 				.collect(),
 		})
 		.map(|f| {
 			let field_name_snake = snake_ident(f.name());
 
-            let val = scalar_field_to_crdt(f, quote!(self.crdt_client.client), quote!(#data_var.#field_name_snake));
+			let val = scalar_field_to_crdt(
+				f,
+				quote!(self.crdt_client.client),
+				quote!(#data_var.#field_name_snake),
+			);
 
 			quote!(#field_name_snake: #val)
 		});
@@ -130,13 +134,13 @@ pub fn scalar_field_to_crdt(
 				let relation_model_snake = snake_ident(&relation_model.name);
 
 				let referenced_sync_id_field = relation_model
-					.sync_id_for_pk(&relation_field_info.referenced_field)
+					.sync_id_for_pk(relation_field_info.referenced_field)
 					.expect("referenced_sync_id_field should be present");
 
 				// If referenced field is a sync ID, it does not need to be converted
 				(!field.model.is_sync_id(relation_field_info.referenced_field)).then(|| {
 					let referenced_sync_id_field_name_snake =
-						snake_ident(&referenced_sync_id_field.name());
+						snake_ident(referenced_sync_id_field.name());
 
 					let query = quote! {
 						#client

@@ -17,20 +17,20 @@ pub fn pascal_ident(name: &str) -> Ident {
 pub struct DatamodelRef<'a>(pub &'a Datamodel<'a>);
 
 impl<'a> DatamodelRef<'a> {
-	pub fn models(&self) -> Vec<ModelRef<'a>> {
-		self.0
-			.models
-			.iter()
-			.map(|m| ModelRef::new(m, *self))
-			.collect()
-	}
+	// pub fn models(&self) -> Vec<ModelRef<'a>> {
+	// 	self.0
+	// 		.models
+	// 		.iter()
+	// 		.map(|m| ModelRef::new(m, *self))
+	// 		.collect()
+	// }
 }
 
 impl<'a> Deref for DatamodelRef<'a> {
 	type Target = Datamodel<'a>;
 
 	fn deref(&self) -> &Self::Target {
-		&self.0
+		self.0
 	}
 }
 
@@ -73,7 +73,7 @@ impl<'a> Deref for ModelRef<'a> {
 	type Target = Model<'a>;
 
 	fn deref(&self) -> &Self::Target {
-		&self.model
+		self.model
 	}
 }
 
@@ -98,6 +98,6 @@ impl<'a> Deref for FieldRef<'a> {
 	type Target = Field<'a>;
 
 	fn deref(&self) -> &Self::Target {
-		&self.field
+		self.field
 	}
 }

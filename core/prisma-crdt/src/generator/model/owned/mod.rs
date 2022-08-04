@@ -29,19 +29,18 @@ pub fn create_exec_body(model: ModelRef) -> TokenStream {
 	let crdt_params_constructor = create_params::crdt_constructor(model);
 
 	quote! {
-        let sync_id = #sync_id_constructor;
+		let sync_id = #sync_id_constructor;
 
-        let params = #crdt_params_constructor;
+		let params = #crdt_params_constructor;
 
-        let params_map = ::prisma_crdt::objectify(params);
+		let params_map = ::prisma_crdt::objectify(params);
 
-        self
-           .crdt_client
-            ._create_operation(::prisma_crdt::CRDTOperationType::owned(
-                #model_name_str,
-                vec![::prisma_crdt::OwnedOperationData::Create(params_map)]
-            ))
-            .await;
+		self
+		   .crdt_client
+			._create_operation(::prisma_crdt::CRDTOperationType::owned(
+				#model_name_str,
+				vec![::prisma_crdt::OwnedOperationData::Create(params_map)]
+			))
+			.await;
 	}
 }
-

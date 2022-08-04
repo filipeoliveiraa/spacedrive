@@ -1,11 +1,11 @@
 use crate::generator::prelude::*;
 
-use super::{sync_id, create_params};
+use super::{create_params, sync_id};
 
 /// Generates the body of a shared relation's `Create::exec` function
 ///
 /// ## Example
-/// 
+///
 /// ### Atomic
 ///
 /// ```
@@ -39,7 +39,7 @@ use super::{sync_id, create_params};
 /// ```
 ///
 /// ### Unique
-/// 
+///
 /// ```
 /// let sync_id = SyncId { .. };
 ///

@@ -14,12 +14,12 @@ impl AttributeFieldValue<'_> {
 		}
 	}
 
-	pub fn as_list(&self) -> Option<&Vec<&str>> {
-		match self {
-			AttributeFieldValue::List(fields) => Some(fields),
-			_ => None,
-		}
-	}
+	// pub fn as_list(&self) -> Option<&Vec<&str>> {
+	// 	match self {
+	// 		AttributeFieldValue::List(fields) => Some(fields),
+	// 		_ => None,
+	// 	}
+	// }
 }
 
 #[derive(Debug)]
@@ -36,9 +36,6 @@ impl<'a> Attribute<'a> {
 	}
 
 	pub fn field(&self, name: &str) -> Option<&AttributeFieldValue> {
-		self.fields
-			.iter()
-			.find(|(n, _)| *n == name)
-			.map(|(_, v)| v)
+		self.fields.iter().find(|(n, _)| *n == name).map(|(_, v)| v)
 	}
 }

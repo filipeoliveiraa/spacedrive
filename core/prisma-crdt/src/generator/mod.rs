@@ -14,9 +14,11 @@ impl PrismaGenerator for PrismaCRDTGenerator {
 	fn generate(self, args: GenerateArgs) -> String {
 		let datamodel =
 			datamodel::Datamodel::try_from(&args.dml).expect("Failed to construct datamodel");
-        let datamodel_ref = prelude::DatamodelRef(&datamodel);
+		let datamodel_ref = prelude::DatamodelRef(&datamodel);
 
 		let header = quote! {
+			#![allow(clippy::all)]
+
 			pub async fn new_client(
 				prisma_client: crate::prisma::PrismaClient,
 				node_id: Vec<u8>,

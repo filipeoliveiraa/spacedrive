@@ -22,9 +22,9 @@ impl<'a> Model<'a> {
 		let fields = model
 			.fields()
 			.filter(|f| {
-				!f.as_relation_field()
+				f.as_relation_field()
 					.filter(|rf| OPERATION_MODELS.contains(&rf.relation_info.to.as_str()))
-					.is_some()
+					.is_none()
 			})
 			.map(|f| Field::new(f, &model.name, datamodel))
 			.collect::<Vec<_>>();
@@ -61,7 +61,7 @@ impl<'a> Model<'a> {
 			.unwrap()
 			.fields
 			.iter()
-			.any(|f| &f.name == field)
+			.any(|f| f.name == field)
 	}
 
 	pub fn sync_id_for_pk(&self, primary_key: &str) -> Option<&Field<'a>> {
@@ -71,7 +71,7 @@ impl<'a> Model<'a> {
 			.unwrap()
 			.fields
 			.iter()
-			.position(|f| &f.name == primary_key);
+			.position(|f| f.name == primary_key);
 
 		pk_index
 			.and_then(|pk_index| match &self.typ {
@@ -124,7 +124,7 @@ impl<'a> Model<'a> {
 impl<'a> Deref for Model<'a> {
 	type Target = dml::Model;
 	fn deref(&self) -> &Self::Target {
-		&self.prisma
+		self.prisma
 	}
 }
 
@@ -164,7 +164,7 @@ impl ModelType {
 
 				let owner = attribute
 					.field("owner")
-					.ok_or(format!("Missing owner field"))
+					.ok_or_else(|| "Missing owner field".to_string())
 					.map(|owner| owner.as_single().expect("Owner field must be a string"))
 					.and_then(|owner| {
 						fields
@@ -281,7 +281,7 @@ impl SyncIDMapping {
 	pub fn is_sync_id(&self, field: &str) -> bool {
 		match self {
 			Self::Single(v) => field == v,
-			Self::Compound(mappings) => mappings.iter().find(|v| &field == v).is_some(),
+			Self::Compound(mappings) => mappings.iter().any(|v| field == v),
 		}
 	}
 
