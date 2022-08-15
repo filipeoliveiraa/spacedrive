@@ -66,17 +66,17 @@ pub fn definition(model: ModelRef) -> TokenStream {
 				self.client.client.#name().find_many(params)
 			}
 
-			// pub fn update(
-			// 	self,
-			// 	_where: crate::prisma::#name::UniqueWhereParam,
-			// 	set_params: Vec<SetParam>,
-			// ) -> Update<'a> {
-			// 	Update {
-			// 		client: self.client,
-			// 		where_param: _where,
-			// 		set_params,
-			// 	}
-			// }
+			pub fn update(
+				self,
+				_where: crate::prisma::#name::UniqueWhereParam,
+				set_params: Vec<SetParam>,
+			) -> Update<'a> {
+				Update {
+					client: self.client,
+					where_param: _where,
+					set_params,
+				}
+			}
 
 			// pub fn delete(self, param: crate::prisma::#name::UniqueWhereParam) -> Delete<'a> {
 			// 	Delete {

@@ -45,7 +45,7 @@ pub fn generate(model: ModelRef) -> TokenStream {
 	let create_params = create_params::definition(model);
 
 	let create_struct = create::struct_definition(model);
-	// let update_struct = update::generate(&model);
+	let update_struct = update::generate(&model);
 	// let delete_struct = delete::generate(&model);
 
 	let actions_struct = actions::definition(model);
@@ -64,7 +64,7 @@ pub fn generate(model: ModelRef) -> TokenStream {
 
 			#create_struct
 
-			// #update_struct
+			#update_struct
 
 			// #delete_struct
 
