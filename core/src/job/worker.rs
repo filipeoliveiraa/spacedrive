@@ -1,6 +1,6 @@
+use crate::invalidate_query;
 use crate::job::{DynJob, JobError, JobManager, JobReportUpdate, JobStatus};
 use crate::library::LibraryContext;
-use crate::{api::LibraryArgs, invalidate_query};
 use std::{sync::Arc, time::Duration};
 use tokio::{
 	sync::{
@@ -189,14 +189,7 @@ impl Worker {
 						}
 					}
 
-					invalidate_query!(
-						library,
-						"jobs.getRunning": LibraryArgs<()>,
-						LibraryArgs {
-							library_id: library.id,
-							arg: ()
-						}
-					);
+					invalidate_query!(library, "jobs.getRunning");
 				}
 				WorkerEvent::Completed => {
 					worker.report.status = JobStatus::Completed;
@@ -207,23 +200,8 @@ impl Worker {
 						.await
 						.expect("critical error: failed to update job report");
 
-					invalidate_query!(
-						library,
-						"jobs.getRunning": LibraryArgs<()>,
-						LibraryArgs {
-							library_id: library.id,
-							arg: ()
-						}
-					);
-
-					invalidate_query!(
-						library,
-						"jobs.getHistory": LibraryArgs<()>,
-						LibraryArgs {
-							library_id: library.id,
-							arg: ()
-						}
-					);
+					invalidate_query!(library, "jobs.getRunning");
+					invalidate_query!(library, "jobs.getHistory");
 
 					info!("{}", worker.report);
 
@@ -254,14 +232,7 @@ impl Worker {
 						.expect("critical error: failed to update job report");
 					info!("{}", worker.report);
 
-					invalidate_query!(
-						library,
-						"jobs.getHistory": LibraryArgs<()>,
-						LibraryArgs {
-							library_id: library.id,
-							arg: ()
-						}
-					);
+					invalidate_query!(library, "jobs.getHistory");
 
 					break;
 				}

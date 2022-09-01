@@ -11,7 +11,7 @@ use crate::{
 	sys::{self, create_location, scan_location},
 };
 
-use super::{LibraryArgs, RouterBuilder};
+use super::{utils::LibraryRequest, RouterBuilder};
 
 #[derive(Serialize, Deserialize, Type, Debug)]
 pub struct DirectoryWithContents {
@@ -34,9 +34,7 @@ pub struct GetExplorerDirArgs {
 
 pub(crate) fn mount() -> RouterBuilder {
 	<RouterBuilder>::new()
-		.query("get", |ctx, arg: LibraryArgs<()>| async move {
-			let (_, library) = arg.get_library(&ctx).await?;
-
+		.library_query("get", |_, _: (), library| async move {
 			let locations = library
 				.db
 				.location()
@@ -47,9 +45,7 @@ pub(crate) fn mount() -> RouterBuilder {
 
 			Ok(locations)
 		})
-		.query("getById", |ctx, arg: LibraryArgs<i32>| async move {
-			let (location_id, library) = arg.get_library(&ctx).await?;
-
+		.library_query("getById", |_, location_id: i32, library| async move {
 			Ok(library
 				.db
 				.location()
@@ -57,11 +53,9 @@ pub(crate) fn mount() -> RouterBuilder {
 				.exec()
 				.await?)
 		})
-		.query(
+		.library_query(
 			"getExplorerDir",
-			|ctx, arg: LibraryArgs<GetExplorerDirArgs>| async move {
-				let (args, library) = arg.get_library(&ctx).await?;
-
+			|_, args: GetExplorerDirArgs, library| async move {
 				let location = library
 					.db
 					.location()
@@ -119,17 +113,14 @@ pub(crate) fn mount() -> RouterBuilder {
 				})
 			},
 		)
-		.mutation("create", |ctx, arg: LibraryArgs<PathBuf>| async move {
-			let (path, library) = arg.get_library(&ctx).await?;
+		.library_mutation("create", |_, path: PathBuf, library| async move {
 			let location = create_location(&library, &path).await?;
 			scan_location(&library, location.id, path).await;
 			Ok(location)
 		})
-		.mutation(
+		.library_mutation(
 			"update",
-			|ctx, arg: LibraryArgs<LocationUpdateArgs>| async move {
-				let (args, library) = arg.get_library(&ctx).await?;
-
+			|_, args: LocationUpdateArgs, library| async move {
 				library
 					.db
 					.location()
@@ -143,9 +134,7 @@ pub(crate) fn mount() -> RouterBuilder {
 				Ok(())
 			},
 		)
-		.mutation("delete", |ctx, arg: LibraryArgs<i32>| async move {
-			let (location_id, library) = arg.get_library(&ctx).await?;
-
+		.library_mutation("delete", |_, location_id: i32, library| async move {
 			library
 				.db
 				.file_path()
@@ -160,25 +149,19 @@ pub(crate) fn mount() -> RouterBuilder {
 				.exec()
 				.await?;
 
-			invalidate_query!(
-				library,
-				"locations.get": LibraryArgs<()>,
-				LibraryArgs {
-					library_id: library.id,
-					arg: ()
-				}
-			);
+			invalidate_query!(library, "locations.get");
 
 			info!("Location {} deleted", location_id);
 
 			Ok(())
 		})
-		.mutation("fullRescan", |ctx, arg: LibraryArgs<i32>| async move {
-			let (id, library) = arg.get_library(&ctx).await?;
-
+		.library_mutation("fullRescan", |_, id: i32, library| async move {
 			sys::scan_location(&library, id, String::new()).await;
 
 			Ok(())
 		})
-		.mutation("quickRescan", |_, _: LibraryArgs<()>| todo!())
+		.library_mutation("quickRescan", |_, _: (), _| async move {
+			#[allow(unreachable_code)]
+			Ok(todo!())
+		})
 }

@@ -7,7 +7,7 @@ use crate::{
 	prisma::{file, tag},
 };
 
-use super::{LibraryArgs, RouterBuilder};
+use super::{utils::LibraryRequest, RouterBuilder};
 
 #[derive(Type, Deserialize)]
 pub struct TagCreateArgs {
@@ -30,14 +30,10 @@ pub struct TagUpdateArgs {
 
 pub(crate) fn mount() -> RouterBuilder {
 	RouterBuilder::new()
-		.query("get", |ctx, arg: LibraryArgs<()>| async move {
-			let (_, library) = arg.get_library(&ctx).await?;
-
+		.library_query("get", |_, _: (), library| async move {
 			Ok(library.db.tag().find_many(vec![]).exec().await?)
 		})
-		.query("getFilesForTag", |ctx, arg: LibraryArgs<i32>| async move {
-			let (tag_id, library) = arg.get_library(&ctx).await?;
-
+		.library_query("getFilesForTag", |_, tag_id: i32, library| async move {
 			Ok(library
 				.db
 				.tag()
@@ -45,90 +41,52 @@ pub(crate) fn mount() -> RouterBuilder {
 				.exec()
 				.await?)
 		})
-		.mutation(
-			"create",
-			|ctx, arg: LibraryArgs<TagCreateArgs>| async move {
-				let (args, library) = arg.get_library(&ctx).await?;
+		.library_mutation("create", |_, args: TagCreateArgs, library| async move {
+			let created_tag = library
+				.db
+				.tag()
+				.create(
+					Uuid::new_v4().as_bytes().to_vec(),
+					vec![
+						tag::name::set(Some(args.name)),
+						tag::color::set(Some(args.color)),
+					],
+				)
+				.exec()
+				.await?;
 
-				let created_tag = library
-					.db
-					.tag()
-					.create(
-						Uuid::new_v4().as_bytes().to_vec(),
-						vec![
-							tag::name::set(Some(args.name)),
-							tag::color::set(Some(args.color)),
-						],
-					)
-					.exec()
-					.await?;
+			invalidate_query!(library, "tags.get");
 
-				invalidate_query!(
-					library,
-					"tags.get": LibraryArgs<()>,
-					LibraryArgs {
-						library_id: library.id,
-						arg: ()
-					}
-				);
+			Ok(created_tag)
+		})
+		.library_mutation("assign", |_, args: TagAssignArgs, library| async move {
+			library.db.tag_on_file().create(
+				tag::id::equals(args.tag_id),
+				file::id::equals(args.file_id),
+				vec![],
+			);
 
-				Ok(created_tag)
-			},
-		)
-		.mutation(
-			"assign",
-			|ctx, arg: LibraryArgs<TagAssignArgs>| async move {
-				let (args, library) = arg.get_library(&ctx).await?;
+			Ok(())
+		})
+		.library_mutation("update", |_, args: TagUpdateArgs, library| async move {
+			library
+				.db
+				.tag()
+				.update(
+					tag::id::equals(args.id),
+					vec![tag::name::set(args.name), tag::color::set(args.color)],
+				)
+				.exec()
+				.await?;
 
-				library.db.tag_on_file().create(
-					tag::id::equals(args.tag_id),
-					file::id::equals(args.file_id),
-					vec![],
-				);
+			invalidate_query!(library, "tags.get");
 
-				Ok(())
-			},
-		)
-		.mutation(
-			"update",
-			|ctx, arg: LibraryArgs<TagUpdateArgs>| async move {
-				let (args, library) = arg.get_library(&ctx).await?;
-
-				library
-					.db
-					.tag()
-					.update(
-						tag::id::equals(args.id),
-						vec![tag::name::set(args.name), tag::color::set(args.color)],
-					)
-					.exec()
-					.await?;
-
-				invalidate_query!(
-					library,
-					"tags.get": LibraryArgs<()>,
-					LibraryArgs {
-						library_id: library.id,
-						arg: ()
-					}
-				);
-
-				Ok(())
-			},
-		)
-		.mutation("delete", |ctx, arg: LibraryArgs<i32>| async move {
-			let (id, library) = arg.get_library(&ctx).await?;
-
+			Ok(())
+		})
+		.library_mutation("delete", |_, id: i32, library| async move {
 			library.db.tag().delete(tag::id::equals(id)).exec().await?;
 
-			invalidate_query!(
-				library,
-				"tags.get": LibraryArgs<()>,
-				LibraryArgs {
-					library_id: library.id,
-					arg: ()
-				}
-			);
+			invalidate_query!(library, "tags.get");
 
 			Ok(())
 		})

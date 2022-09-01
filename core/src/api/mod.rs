@@ -3,14 +3,13 @@ use std::{
 	time::{Duration, Instant},
 };
 
-use rspc::{Config, ErrorCode, Type};
+use rspc::{Config, Type};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
-use uuid::Uuid;
 
 use crate::{
 	job::JobManager,
-	library::{LibraryContext, LibraryManager},
+	library::LibraryManager,
 	node::{NodeConfig, NodeConfigManager},
 };
 
@@ -33,26 +32,6 @@ pub struct Ctx {
 	pub config: Arc<NodeConfigManager>,
 	pub jobs: Arc<JobManager>,
 	pub event_bus: broadcast::Sender<CoreEvent>,
-}
-
-/// Can wrap a query argument to require it to contain a `library_id` and provide helpers for working with libraries.
-#[derive(Clone, Serialize, Deserialize, Type)]
-pub struct LibraryArgs<T> {
-	// If you want to make these public, your doing it wrong.
-	pub library_id: Uuid,
-	pub arg: T,
-}
-
-impl<T> LibraryArgs<T> {
-	pub async fn get_library(self, ctx: &Ctx) -> Result<(T, LibraryContext), rspc::Error> {
-		match ctx.library_manager.get_ctx(self.library_id).await {
-			Some(library) => Ok((self.arg, library)),
-			None => Err(rspc::Error::new(
-				ErrorCode::BadRequest,
-				"You must specify a valid library to use this operation.".to_string(),
-			)),
-		}
-	}
 }
 
 mod files;

@@ -1,9 +1,9 @@
 use rspc::Type;
 use serde::Deserialize;
 
-use crate::{api::locations::GetExplorerDirArgs, invalidate_query, prisma::file};
+use crate::{invalidate_query, prisma::file};
 
-use super::{LibraryArgs, RouterBuilder};
+use super::{utils::LibraryRequest, RouterBuilder};
 
 #[derive(Type, Deserialize)]
 pub struct SetNoteArgs {
@@ -19,10 +19,11 @@ pub struct SetFavoriteArgs {
 
 pub(crate) fn mount() -> RouterBuilder {
 	<RouterBuilder>::new()
-		.query("readMetadata", |_ctx, _id: LibraryArgs<i32>| todo!())
-		.mutation("setNote", |ctx, arg: LibraryArgs<SetNoteArgs>| async move {
-			let (args, library) = arg.get_library(&ctx).await?;
-
+		.library_query("readMetadata", |_ctx, _id: i32, _| async move {
+			#[allow(unreachable_code)]
+			Ok(todo!())
+		})
+		.library_mutation("setNote", |_ctx, args: SetNoteArgs, library| async move {
 			library
 				.db
 				.file()
@@ -34,11 +35,9 @@ pub(crate) fn mount() -> RouterBuilder {
 
 			Ok(())
 		})
-		.mutation(
+		.library_mutation(
 			"setFavorite",
-			|ctx, arg: LibraryArgs<SetFavoriteArgs>| async move {
-				let (args, library) = arg.get_library(&ctx).await?;
-
+			|_, args: SetFavoriteArgs, library| async move {
 				library
 					.db
 					.file()
@@ -49,26 +48,12 @@ pub(crate) fn mount() -> RouterBuilder {
 					.exec()
 					.await?;
 
-				invalidate_query!(
-					library,
-					"locations.getExplorerDir": LibraryArgs<GetExplorerDirArgs>,
-					LibraryArgs {
-						library_id: library.id,
-						arg: GetExplorerDirArgs {
-							// TODO: Set these arguments to the correct type
-							location_id: 0,
-							path: "".into(),
-							limit: 0,
-						}
-					}
-				);
+				invalidate_query!(library, "locations.getExplorerDir");
 
 				Ok(())
 			},
 		)
-		.mutation("delete", |ctx, arg: LibraryArgs<i32>| async move {
-			let (id, library) = arg.get_library(&ctx).await?;
-
+		.library_mutation("delete", |_, id: i32, library| async move {
 			library
 				.db
 				.file()
@@ -76,19 +61,7 @@ pub(crate) fn mount() -> RouterBuilder {
 				.exec()
 				.await?;
 
-			invalidate_query!(
-				library,
-				"locations.getExplorerDir": LibraryArgs<GetExplorerDirArgs>,
-				LibraryArgs {
-					library_id: library.id,
-					arg: GetExplorerDirArgs {
-						// TODO: Set these arguments to the correct type
-						location_id: 0,
-						path: "".into(),
-						limit: 0,
-					}
-				}
-			);
+			invalidate_query!(library, "locations.getExplorerDir");
 			Ok(())
 		})
 }

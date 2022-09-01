@@ -1,5 +1,4 @@
 use crate::{
-	api::LibraryArgs,
 	encode::{ThumbnailJob, ThumbnailJobInit},
 	file::{
 		cas::{FileIdentifierJob, FileIdentifierJobInit},
@@ -155,14 +154,7 @@ pub async fn create_location(
 			.await
 			.map_err(|e| LocationError::DotfileWriteFailure(e, path.to_owned()))?;
 
-		invalidate_query!(
-			library,
-			"locations.get": LibraryArgs<()>,
-			LibraryArgs {
-				library_id: library.id,
-				arg: ()
-			}
-		);
+		invalidate_query!(library, "locations.get");
 
 		location
 	};
