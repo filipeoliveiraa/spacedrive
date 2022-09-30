@@ -17,7 +17,7 @@
 		"preset": "scripts/jest/node"
 	},
 	"dependencies": {
-		"@rspc/client": "^0.0.5",
+		"@rspc/client": "^0.0.6",
 		"@sd/core": "workspace:*",
 		"@sd/config": "workspace:*",
 		"@sd/interface": "workspace:*",
