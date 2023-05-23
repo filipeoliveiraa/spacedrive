@@ -1,8 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import clsx from 'clsx';
-import React, { useEffect, useRef, useState } from 'react';
-
-import { getWindow } from '../utils';
+import { useEffect, useRef, useState } from 'react';
+import { getWindow } from '~/utils/util';
 
 const AppEmbed = () => {
 	const [showApp, setShowApp] = useState(false);
@@ -12,25 +10,18 @@ const AppEmbed = () => {
 	const iFrame = useRef<HTMLIFrameElement>(null);
 	const window = getWindow()!;
 
-	function handleResize() {
-		if (window.innerWidth < 1000) {
-			setForceImg(true);
-		} else if (forceImg) {
-			setForceImg(false);
-		}
-	}
-
 	useEffect(() => {
+		function handleResize() {
+			if (window.innerWidth < 1000) {
+				setForceImg(true);
+			} else if (forceImg) {
+				setForceImg(false);
+			}
+		}
 		window.addEventListener('resize', handleResize);
 		handleResize();
 		return () => window.removeEventListener('resize', handleResize);
-	}, []);
-
-	function handleEvent(e: any) {
-		if (e.data === 'spacedrive-hello') {
-			if (!iFrameAppReady) setIframeAppReady(true);
-		}
-	}
+	}, [forceImg, window]);
 
 	// after five minutes kill the live demo
 	useEffect(() => {
@@ -41,17 +32,22 @@ const AppEmbed = () => {
 	}, []);
 
 	useEffect(() => {
+		function handleEvent(e: any) {
+			if (e.data === 'spacedrive-hello') {
+				if (!iFrameAppReady) setIframeAppReady(true);
+			}
+		}
 		window.addEventListener('message', handleEvent, false);
 		setShowApp(true);
 
 		return () => window.removeEventListener('message', handleEvent);
-	}, []);
+	}, [iFrameAppReady, window]);
 
 	useEffect(() => {
 		setTimeout(() => {
 			if (!iFrameAppReady) setImageFallback(true);
 		}, 1500);
-	}, []);
+	}, [iFrameAppReady]);
 
 	const renderImage = (imgFallback && !iFrameAppReady) || forceImg;
 
@@ -60,18 +56,18 @@ const AppEmbed = () => {
 	return (
 		<div className="w-screen">
 			{renderBloom && (
-				<div className="relative max-w-full sm:w-full sm:max-w-[1400px] mx-auto">
+				<div className="relative mx-auto max-w-full sm:w-full sm:max-w-[1400px]">
 					<div className="bloom burst bloom-one" />
 					<div className="bloom burst bloom-three" />
 					<div className="bloom burst bloom-two" />
 				</div>
 			)}
-			<div className="relative z-30 h-[255px] px-1 sm:h-[428px] md:h-[428px] lg:h-[628px] mt-8 sm:mt-16">
+			<div className="relative z-30 mx-6 mt-8 h-[255px] px-1 sm:mt-16 sm:h-[428px] md:h-[428px] lg:h-[628px]">
 				<div
 					className={clsx(
-						'relative h-full m-auto border rounded-lg max-w-7xl transition-opacity bg-gray-850 border-gray-550 opacity-0',
+						'relative m-auto h-full max-w-7xl rounded-lg border border-gray-550 opacity-0 transition-opacity',
 						renderBloom && '!opacity-100',
-						renderImage && 'bg-transparent border-none'
+						renderImage && 'border-none bg-transparent'
 					)}
 				>
 					{showApp && !forceImg && (
@@ -79,16 +75,20 @@ const AppEmbed = () => {
 							ref={iFrame}
 							referrerPolicy="origin-when-cross-origin"
 							className={clsx(
-								'w-full h-full z-30  rounded-lg shadow-iframe inset-center bg-gray-850',
-								iFrameAppReady ? 'fade-in-app-embed opacity-100' : 'opacity-0 -ml-[10000px]'
+								'shadow-iframe inset-center z-30 h-full w-full rounded-lg bg-gray-850',
+								iFrameAppReady
+									? 'fade-in-app-embed opacity-100'
+									: 'ml-[-10000px] opacity-0'
 							)}
 							src={`${
-								import.meta.env.VITE_SDWEB_BASE_URL || 'http://localhost:8002'
+								process.env.NEXT_PUBLIC_SDWEB_BASE_URL || 'http://localhost:8002'
 							}?showControls&library_id=9068c6ec-cf90-451b-bb30-4174781e7bc6`}
 						/>
 					)}
 
-					{renderImage && <div className="z-40 h-full sm:w-auto fade-in-app-embed landing-img" />}
+					{renderImage && (
+						<div className="fade-in-app-embed landing-img z-40 h-full w-auto" />
+					)}
 				</div>
 			</div>
 		</div>
@@ -97,7 +97,7 @@ const AppEmbed = () => {
 
 export const AppEmbedPlaceholder = () => {
 	return (
-		<div className="w-screen relative z-30 h-[228px] px-5 sm:h-[428px] md:h-[428px] lg:h-[628px] mt-8 sm:mt-16" />
+		<div className="relative z-30 mt-8 h-[228px] w-screen px-5 sm:mt-16 sm:h-[428px] md:h-[428px] lg:h-[628px]" />
 	);
 };
 

@@ -1,95 +1,9 @@
+import { VariantProps, cva, cx } from 'class-variance-authority';
 import clsx from 'clsx';
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
+import { Link, LinkProps } from 'react-router-dom';
 
-const sizes = {
-	default: 'py-1 px-3 text-md font-medium',
-	sm: 'py-1 px-2 text-sm font-medium'
-};
-
-const variants = {
-	default: `
-    bg-gray-50 
-    shadow-sm 
-    hover:bg-gray-100 
-    active:bg-gray-50  
-    dark:bg-transparent 
-    dark:active:bg-gray-600 
-    dark:hover:bg-gray-550 
-    dark:active:opacity-80 
-    
-    border-gray-100 
-    hover:border-gray-200 
-    active:border-gray-200 
-    dark:border-transparent 
-    dark:active:border-gray-600 
-    dark:hover:border-gray-500 
-
-    text-gray-700
-    hover:text-gray-900 
-    active:text-gray-600 
-    dark:text-gray-200  
-    dark:active:text-white 
-    dark:hover:text-white 
-  `,
-	gray: `
-    bg-gray-100 
-    shadow-sm
-    hover:bg-gray-200 
-    active:bg-gray-100  
-    dark:bg-gray-500
-    dark:hover:bg-gray-500
-    dark:bg-opacity-80
-    dark:hover:bg-opacity-100
-    dark:active:opacity-80
-    
-    border-gray-200 
-    hover:border-gray-300
-    active:border-gray-200
-    dark:border-gray-500 
-    dark:hover:border-gray-500
-
-    text-gray-700
-    hover:text-gray-900 
-    active:text-gray-600 
-    dark:text-gray-200  
-    dark:active:text-white 
-    dark:hover:text-white 
-    
-  `,
-	primary: `
-    bg-primary-600
-    text-white 
-    shadow-sm 
-    active:bg-primary-600 
-    hover:bg-primary
-    border-primary-500 
-    hover:border-primary-500
-    active:border-primary-700 
-  `,
-	colored: `
-		text-white 
-		shadow-sm 
-		hover:bg-opacity-90
-		active:bg-opacity-100
-`,
-	selected: `bg-gray-100 dark:bg-gray-500 
-    text-black hover:text-black active:text-black dark:hover:text-white dark:text-white 
-    `
-};
-
-export type ButtonVariant = keyof typeof variants;
-export type ButtonSize = keyof typeof sizes;
-
-export interface ButtonBaseProps {
-	variant?: ButtonVariant;
-	size?: ButtonSize;
-	loading?: boolean;
-	icon?: React.ReactNode;
-	noPadding?: boolean;
-	noBorder?: boolean;
-	pressEffect?: boolean;
-	justifyLeft?: boolean;
-}
+export interface ButtonBaseProps extends VariantProps<typeof styles> {}
 
 export type ButtonProps = ButtonBaseProps &
 	React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -108,39 +22,80 @@ type Button = {
 
 const hasHref = (props: ButtonProps | LinkButtonProps): props is LinkButtonProps => 'href' in props;
 
+const styles = cva(
+	[
+		'cursor-default items-center rounded-md border outline-none transition-colors duration-100',
+		'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-70',
+		'focus:ring-none focus:ring-offset-none ring-offset-app-box'
+	],
+	{
+		variants: {
+			size: {
+				icon: '!p-1',
+				lg: 'text-md px-3 py-1.5 font-medium',
+				md: 'px-2.5 py-1.5 text-sm font-medium',
+				sm: 'px-2 py-1 text-sm font-medium'
+			},
+			variant: {
+				default: [
+					'bg-transparent hover:bg-app-hover active:bg-app-selected',
+					'border-transparent hover:border-app-line active:border-app-line'
+				],
+				subtle: [
+					'border-transparent hover:border-app-line/50 active:border-app-line active:bg-app-box/30'
+				],
+				outline: [
+					'border-sidebar-line/60 hover:border-sidebar-line active:border-sidebar-line/30'
+				],
+				dotted: [
+					`rounded border border-dashed border-sidebar-line/70 text-center text-xs font-medium text-ink-faint transition hover:border-sidebar-line hover:bg-sidebar-selected/5`
+				],
+				gray: [
+					'bg-app-button hover:bg-app-hover active:bg-app-selected',
+					'border-app-line hover:border-app-line active:border-app-active'
+				],
+				accent: [
+					'border-accent-deep bg-accent text-white shadow-md shadow-app-shade/10 hover:border-accent hover:bg-accent-faint focus:outline-none focus:ring focus:ring-accent active:border-accent-deep active:bg-accent'
+				],
+				colored: ['text-white shadow-sm hover:bg-opacity-90 active:bg-opacity-100'],
+				bare: ''
+			}
+		},
+		defaultVariants: {
+			size: 'sm',
+			variant: 'default'
+		}
+	}
+);
+
 export const Button = forwardRef<
 	HTMLButtonElement | HTMLAnchorElement,
 	ButtonProps | LinkButtonProps
->(
-	(
-		{ loading, justifyLeft, className, pressEffect, noBorder, noPadding, size, variant, ...props },
-		ref
-	) => {
-		className = clsx(
-			'border rounded-md items-center transition-colors duration-100 cursor-default',
-			{ 'opacity-70': loading, '!p-1': noPadding },
-			{ 'justify-center': !justifyLeft },
-			sizes[size || 'default'],
-			variants[variant || 'default'],
-			{ 'active:translate-y-[1px]': pressEffect },
-			{ 'border-0': noBorder },
-			className
-		);
+>(({ className, ...props }, ref) => {
+	className = cx(styles(props), className);
+	return hasHref(props) ? (
+		<a {...props} ref={ref as any} className={cx(className, 'inline-block no-underline')} />
+	) : (
+		<button type="button" {...(props as ButtonProps)} ref={ref as any} className={className} />
+	);
+});
 
-		return hasHref(props) ? (
-			<a {...props} ref={ref as any} className={clsx(className, 'no-underline')}>
-				<>
-					{props.icon}
-					{props.children}
-				</>
-			</a>
-		) : (
-			<button {...(props as ButtonProps)} ref={ref as any} className={className}>
-				<>
-					{props.icon}
-					{props.children}
-				</>
-			</button>
-		);
-	}
-);
+export const ButtonLink = forwardRef<
+	HTMLAnchorElement,
+	ButtonBaseProps & LinkProps & React.RefAttributes<HTMLAnchorElement>
+>(({ className, size, variant, ...props }, ref) => {
+	return (
+		<Link
+			ref={ref}
+			className={styles({
+				size,
+				variant,
+				className: clsx(
+					'no-underline disabled:cursor-not-allowed disabled:opacity-50',
+					className
+				)
+			})}
+			{...props}
+		/>
+	);
+});

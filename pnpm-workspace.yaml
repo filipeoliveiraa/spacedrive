@@ -1,5 +1,7 @@
 packages:
   - 'packages/*'
   - 'apps/*'
-  - '!apps/mobile'
   - 'core'
+  - 'interface'
+  - 'docs'
+  - 'crates/sync/example/web'

@@ -1,11 +1,11 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { StackScreenProps, createStackNavigator } from '@react-navigation/stack';
-
-import NotFoundScreen from '../screens/NotFound';
-import SearchScreen from '../screens/modals/Search';
-import SettingsScreen from '../screens/modals/settings/Settings';
+import { tw } from '~/lib/tailwind';
+import NotFoundScreen from '~/screens/NotFound';
+import SearchScreen from '~/screens/Search';
 import type { DrawerNavParamList } from './DrawerNavigator';
 import DrawerNavigator from './DrawerNavigator';
+import SettingsNavigator, { SettingsStackParamList } from './SettingsNavigator';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -13,20 +13,31 @@ const Stack = createStackNavigator<RootStackParamList>();
 export default function RootNavigator() {
 	return (
 		<Stack.Navigator initialRouteName="Root">
-			<Stack.Screen name="Root" component={DrawerNavigator} options={{ headerShown: false }} />
+			<Stack.Screen
+				name="Root"
+				component={DrawerNavigator}
+				options={{ headerShown: false }}
+			/>
 			<Stack.Screen name="NotFound" component={NotFoundScreen} options={{ title: 'Oops!' }} />
-			<Stack.Screen name="Search" component={SearchScreen} options={{ headerShown: false }} />
+			<Stack.Screen
+				name="Search"
+				component={SearchScreen}
+				options={{ headerShown: false, animationEnabled: false }}
+			/>
 			{/* Modals */}
 			<Stack.Group
 				screenOptions={{
+					headerShown: false,
 					presentation: 'modal',
 					headerBackTitleVisible: false,
-					headerStyle: { backgroundColor: '#08090D' },
-					// headerShadowVisible: false,
-					headerTintColor: '#fff'
+					headerStyle: tw`bg-app`,
+					headerTintColor: tw.color('ink'),
+					headerTitleStyle: tw`text-base`,
+					headerBackTitleStyle: tw`text-base`
+					// headerShadowVisible: false // will disable the white line under
 				}}
 			>
-				<Stack.Screen name="Settings" component={SettingsScreen} />
+				<Stack.Screen name="Settings" component={SettingsNavigator} />
 			</Stack.Group>
 		</Stack.Navigator>
 	);
@@ -37,7 +48,7 @@ export type RootStackParamList = {
 	NotFound: undefined;
 	// Modals
 	Search: undefined;
-	Settings: undefined;
+	Settings: NavigatorScreenParams<SettingsStackParamList>;
 };
 
 export type RootStackScreenProps<Screen extends keyof RootStackParamList> = StackScreenProps<

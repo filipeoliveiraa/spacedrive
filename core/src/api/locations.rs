@@ -1,24 +1,20 @@
 use crate::{
-	encode::THUMBNAIL_CACHE_DIR_NAME,
 	invalidate_query,
 	location::{
-		fetch_location, indexer::indexer_rules::IndexerRuleCreateArgs, scan_location,
-		with_indexer_rules, LocationCreateArgs, LocationError, LocationUpdateArgs,
+		delete_location, find_location, indexer::rules::IndexerRuleCreateArgs, light_scan_location,
+		location_with_indexer_rules, relink_location, scan_location, LocationCreateArgs,
+		LocationError, LocationUpdateArgs,
 	},
-	prisma::{file, file_path, indexer_rule, indexer_rules_in_location, location, tag},
+	prisma::{file_path, indexer_rule, indexer_rules_in_location, location, object, tag},
 };
 
-use rspc::{self, ErrorCode, Type};
+use std::path::PathBuf;
+
+use rspc::{self, alpha::AlphaRouter, ErrorCode};
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use specta::Type;
 
-use super::{LibraryArgs, RouterBuilder};
-
-#[derive(Serialize, Deserialize, Type, Debug)]
-pub struct ExplorerData {
-	pub context: ExplorerContext,
-	pub items: Vec<ExplorerItem>,
-}
+use super::{utils::library, Ctx, R};
 
 #[derive(Serialize, Deserialize, Type, Debug)]
 #[serde(tag = "type")]
@@ -31,233 +27,262 @@ pub enum ExplorerContext {
 #[derive(Serialize, Deserialize, Type, Debug)]
 #[serde(tag = "type")]
 pub enum ExplorerItem {
-	Path(Box<file_path::Data>),
-	Object(Box<file::Data>),
+	Path {
+		// has_thumbnail is determined by the local existence of a thumbnail
+		has_thumbnail: bool,
+		item: file_path_with_object::Data,
+	},
+	Object {
+		has_thumbnail: bool,
+		item: object_with_file_paths::Data,
+	},
 }
 
-#[derive(Clone, Serialize, Deserialize, Type, Debug)]
-pub struct LocationExplorerArgs {
-	pub location_id: i32,
-	pub path: String,
-	pub limit: i32,
-	pub cursor: Option<String>,
+#[derive(Serialize, Deserialize, Type, Debug)]
+pub struct ExplorerData {
+	pub context: ExplorerContext,
+	pub items: Vec<ExplorerItem>,
+	pub cursor: Option<Vec<u8>>,
 }
 
-pub(crate) fn mount() -> RouterBuilder {
-	<RouterBuilder>::new()
-		.query("get", |ctx, arg: LibraryArgs<()>| async move {
-			let (_, library) = arg.get_library(&ctx).await?;
+file_path::include!(file_path_with_object { object });
+object::include!(object_with_file_paths { file_paths });
 
-			let locations = library
-				.db
-				.location()
-				.find_many(vec![])
-				.with(location::node::fetch())
-				.exec()
-				.await?;
-
-			Ok(locations)
-		})
-		.query("getById", |ctx, arg: LibraryArgs<i32>| async move {
-			let (location_id, library) = arg.get_library(&ctx).await?;
-
-			Ok(library
-				.db
-				.location()
-				.find_unique(location::id::equals(location_id))
-				.exec()
-				.await?)
-		})
-		.query(
-			"getExplorerData",
-			|ctx, arg: LibraryArgs<LocationExplorerArgs>| async move {
-				let (args, library) = arg.get_library(&ctx).await?;
-
-				let location = library
+pub(crate) fn mount() -> AlphaRouter<Ctx> {
+	R.router()
+		.procedure("list", {
+			R.with2(library()).query(|(_, library), _: ()| async move {
+				Ok(library
 					.db
 					.location()
-					.find_unique(location::id::equals(args.location_id))
+					.find_many(vec![])
+					.include(location::include!({ node }))
 					.exec()
-					.await?
-					.ok_or_else(|| {
-						rspc::Error::new(ErrorCode::NotFound, "Location not found".into())
-					})?;
-
-				let directory = library
-					.db
-					.file_path()
-					.find_first(vec![
-						file_path::location_id::equals(location.id),
-						file_path::materialized_path::equals(args.path),
-						file_path::is_dir::equals(true),
-					])
-					.exec()
-					.await?
-					.ok_or_else(|| {
-						rspc::Error::new(ErrorCode::NotFound, "Directory not found".into())
-					})?;
-
-				let file_paths = library
-					.db
-					.file_path()
-					.find_many(vec![
-						file_path::location_id::equals(location.id),
-						file_path::parent_id::equals(Some(directory.id)),
-					])
-					.with(file_path::file::fetch())
-					.exec()
-					.await?;
-
-				Ok(ExplorerData {
-					context: ExplorerContext::Location(location),
-					items: file_paths
-						.into_iter()
-						.map(|mut file_path| {
-							if let Some(file) = &mut file_path.file.as_mut().unwrap_or_else(
-								|| /* Prisma relationship was not fetched */ unreachable!(),
-							) {
-								// TODO: Use helper function to build this url as as the Rust file loading layer
-								let thumb_path = library
-									.config()
-									.data_directory()
-									.join(THUMBNAIL_CACHE_DIR_NAME)
-									.join(&file.cas_id)
-									.with_extension("webp");
-
-								file.has_thumbnail = thumb_path.exists();
-							}
-							ExplorerItem::Path(Box::new(file_path))
-						})
-						.collect(),
+					.await?)
+			})
+		})
+		.procedure("get", {
+			R.with2(library())
+				.query(|(_, library), location_id: i32| async move {
+					Ok(library
+						.db
+						.location()
+						.find_unique(location::id::equals(location_id))
+						.exec()
+						.await?)
 				})
-			},
-		)
-		.mutation(
-			"create",
-			|ctx, arg: LibraryArgs<LocationCreateArgs>| async move {
-				let (create_args, library) = arg.get_library(&ctx).await?;
-
-				let location = create_args.create(&library).await?;
-				scan_location(&library, &location).await?;
-
-				Ok(location)
-			},
-		)
-		.mutation(
-			"update",
-			|ctx, arg: LibraryArgs<LocationUpdateArgs>| async move {
-				let (update_args, library) = arg.get_library(&ctx).await?;
-				update_args.update(&library).await.map_err(Into::into)
-			},
-		)
-		.mutation("delete", |ctx, arg: LibraryArgs<i32>| async move {
-			let (location_id, library) = arg.get_library(&ctx).await?;
-
-			library
-				.db
-				.file_path()
-				.delete_many(vec![file_path::location_id::equals(location_id)])
-				.exec()
-				.await?;
-
-			library
-				.db
-				.indexer_rules_in_location()
-				.delete_many(vec![indexer_rules_in_location::location_id::equals(
-					location_id,
-				)])
-				.exec()
-				.await?;
-
-			library
-				.db
-				.location()
-				.delete(location::id::equals(location_id))
-				.exec()
-				.await?;
-
-			invalidate_query!(
-				library,
-				"locations.get": LibraryArgs<()>,
-				LibraryArgs::new(library.id, ())
-			);
-
-			info!("Location {} deleted", location_id);
-
-			Ok(())
 		})
-		.mutation("fullRescan", |ctx, arg: LibraryArgs<i32>| async move {
-			let (location_id, library) = arg.get_library(&ctx).await?;
-
-			scan_location(
-				&library,
-				&fetch_location(&library, location_id)
-					.with(with_indexer_rules(location_id))
-					.exec()
-					.await?
-					.ok_or(LocationError::IdNotFound(location_id))?,
-			)
-			.await
-			.map_err(Into::into)
+		.procedure("getWithRules", {
+			R.with2(library())
+				.query(|(_, library), location_id: i32| async move {
+					Ok(library
+						.db
+						.location()
+						.find_unique(location::id::equals(location_id))
+						.include(location_with_indexer_rules::include())
+						.exec()
+						.await?)
+				})
 		})
-		.mutation("quickRescan", |_, _: LibraryArgs<()>| todo!())
-		.merge("indexer_rules", mount_indexer_rule_routes())
+		.procedure("create", {
+			R.with2(library())
+				.mutation(|(_, library), args: LocationCreateArgs| async move {
+					if let Some(location) = args.create(&library).await? {
+						scan_location(&library, location).await?;
+						invalidate_query!(library, "locations.list");
+					}
+
+					Ok(())
+				})
+		})
+		.procedure("update", {
+			R.with2(library())
+				.mutation(|(_, library), args: LocationUpdateArgs| async move {
+					args.update(&library).await.map_err(Into::into)
+				})
+		})
+		.procedure("delete", {
+			R.with2(library())
+				.mutation(|(_, library), location_id: i32| async move {
+					delete_location(&library, location_id).await?;
+					invalidate_query!(library, "locations.list");
+					Ok(())
+				})
+		})
+		.procedure("relink", {
+			R.with2(library())
+				.mutation(|(_, library), location_path: PathBuf| async move {
+					relink_location(&library, location_path)
+						.await
+						.map_err(Into::into)
+				})
+		})
+		.procedure("addLibrary", {
+			R.with2(library())
+				.mutation(|(_, library), args: LocationCreateArgs| async move {
+					if let Some(location) = args.add_library(&library).await? {
+						scan_location(&library, location).await?;
+						invalidate_query!(library, "locations.list");
+					}
+					Ok(())
+				})
+		})
+		.procedure("fullRescan", {
+			R.with2(library())
+				.mutation(|(_, library), location_id: i32| async move {
+					// rescan location
+					scan_location(
+						&library,
+						find_location(&library, location_id)
+							.include(location_with_indexer_rules::include())
+							.exec()
+							.await?
+							.ok_or(LocationError::IdNotFound(location_id))?,
+					)
+					.await
+					.map_err(Into::into)
+				})
+		})
+		.procedure("quickRescan", {
+			#[derive(Clone, Serialize, Deserialize, Type, Debug)]
+			pub struct LightScanArgs {
+				pub location_id: i32,
+				pub sub_path: String,
+			}
+
+			R.with2(library())
+				.mutation(|(_, library), args: LightScanArgs| async move {
+					// light rescan location
+					light_scan_location(
+						&library,
+						find_location(&library, args.location_id)
+							.include(location_with_indexer_rules::include())
+							.exec()
+							.await?
+							.ok_or(LocationError::IdNotFound(args.location_id))?,
+						&args.sub_path,
+					)
+					.await
+					.map_err(Into::into)
+				})
+		})
+		.procedure(
+			"online",
+			R.subscription(|ctx, _: ()| async move {
+				let location_manager = ctx.location_manager.clone();
+
+				let mut rx = location_manager.online_rx();
+
+				async_stream::stream! {
+					let online = location_manager.get_online().await;
+
+					yield online;
+
+					while let Ok(locations) = rx.recv().await {
+						yield locations;
+					}
+				}
+			}),
+		)
+		.merge("indexer_rules.", mount_indexer_rule_routes())
 }
 
-fn mount_indexer_rule_routes() -> RouterBuilder {
-	<RouterBuilder>::new()
-		.mutation(
-			"create",
-			|ctx, arg: LibraryArgs<IndexerRuleCreateArgs>| async move {
-				let (create_args, library) = arg.get_library(&ctx).await?;
-				create_args.create(&library).await.map_err(Into::into)
-			},
-		)
-		.mutation("delete", |ctx, arg: LibraryArgs<i32>| async move {
-			let (indexer_rule_id, library) = arg.get_library(&ctx).await?;
+fn mount_indexer_rule_routes() -> AlphaRouter<Ctx> {
+	R.router()
+		.procedure("create", {
+			R.with2(library())
+				.mutation(|(_, library), args: IndexerRuleCreateArgs| async move {
+					if args.create(&library).await?.is_some() {
+						invalidate_query!(library, "locations.indexer_rules.list");
+					}
 
-			library
-				.db
-				.indexer_rules_in_location()
-				.delete_many(vec![indexer_rules_in_location::indexer_rule_id::equals(
-					indexer_rule_id,
-				)])
-				.exec()
-				.await?;
-
-			library
-				.db
-				.indexer_rule()
-				.delete(indexer_rule::id::equals(indexer_rule_id))
-				.exec()
-				.await?;
-
-			Ok(())
-		})
-		.query("get", |ctx, arg: LibraryArgs<i32>| async move {
-			let (indexer_rule_id, library) = arg.get_library(&ctx).await?;
-			library
-				.db
-				.indexer_rule()
-				.find_unique(indexer_rule::id::equals(indexer_rule_id))
-				.exec()
-				.await?
-				.ok_or_else(|| {
-					rspc::Error::new(
-						ErrorCode::NotFound,
-						format!("Indexer rule <id={indexer_rule_id}> not found"),
-					)
+					Ok(())
 				})
 		})
-		.query("list", |ctx, arg: LibraryArgs<()>| async move {
-			let (_, library) = arg.get_library(&ctx).await?;
+		.procedure("delete", {
+			R.with2(library())
+				.mutation(|(_, library), indexer_rule_id: i32| async move {
+					let indexer_rule_db = library.db.indexer_rule();
 
-			library
-				.db
-				.indexer_rule()
-				.find_many(vec![])
-				.exec()
-				.await
-				.map_err(Into::into)
+					if let Some(indexer_rule) = indexer_rule_db
+						.to_owned()
+						.find_unique(indexer_rule::id::equals(indexer_rule_id))
+						.exec()
+						.await?
+					{
+						if indexer_rule.default {
+							return Err(rspc::Error::new(
+								ErrorCode::Forbidden,
+								format!("Indexer rule <id={indexer_rule_id}> can't be deleted"),
+							));
+						}
+					} else {
+						return Err(rspc::Error::new(
+							ErrorCode::NotFound,
+							format!("Indexer rule <id={indexer_rule_id}> not found"),
+						));
+					}
+
+					library
+						.db
+						.indexer_rules_in_location()
+						.delete_many(vec![indexer_rules_in_location::indexer_rule_id::equals(
+							indexer_rule_id,
+						)])
+						.exec()
+						.await?;
+
+					indexer_rule_db
+						.delete(indexer_rule::id::equals(indexer_rule_id))
+						.exec()
+						.await?;
+
+					invalidate_query!(library, "locations.indexer_rules.list");
+
+					Ok(())
+				})
+		})
+		.procedure("get", {
+			R.with2(library())
+				.query(|(_, library), indexer_rule_id: i32| async move {
+					library
+						.db
+						.indexer_rule()
+						.find_unique(indexer_rule::id::equals(indexer_rule_id))
+						.exec()
+						.await?
+						.ok_or_else(|| {
+							rspc::Error::new(
+								ErrorCode::NotFound,
+								format!("Indexer rule <id={indexer_rule_id}> not found"),
+							)
+						})
+				})
+		})
+		.procedure("list", {
+			R.with2(library()).query(|(_, library), _: ()| async move {
+				library
+					.db
+					.indexer_rule()
+					.find_many(vec![])
+					.exec()
+					.await
+					.map_err(Into::into)
+			})
+		})
+		// list indexer rules for location, returning the indexer rule
+		.procedure("listForLocation", {
+			R.with2(library())
+				.query(|(_, library), location_id: i32| async move {
+					library
+						.db
+						.indexer_rule()
+						.find_many(vec![indexer_rule::locations::some(vec![
+							indexer_rules_in_location::location_id::equals(location_id),
+						])])
+						.exec()
+						.await
+						.map_err(Into::into)
+				})
 		})
 }

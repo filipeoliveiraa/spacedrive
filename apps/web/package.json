@@ -5,29 +5,34 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",
-		"preview": "vite preview"
+		"preview": "vite preview",
+		"test": "VITE_SD_DEMO_MODE=true playwright test",
+		"typecheck": "tsc -b"
 	},
 	"dependencies": {
-		"@fontsource/inter": "^4.5.11",
-		"@rspc/client": "^0.0.5",
+		"@fontsource/inter": "^4.5.13",
+		"@rspc/client": "=0.0.0-main-799eec5d",
 		"@sd/client": "workspace:*",
-		"@sd/core": "workspace:*",
 		"@sd/interface": "workspace:*",
-		"@sd/ui": "workspace:*",
-		"@tanstack/react-query": "^4.0.10",
+		"@tanstack/react-query": "^4.12.0",
 		"react": "^18.2.0",
-		"react-dom": "^18.2.0"
+		"react-dom": "^18.2.0",
+		"react-router-dom": "6.9.0"
 	},
 	"devDependencies": {
-		"@types/react": "^18.0.15",
+		"@playwright/test": "^1.30.0",
+		"@sd/config": "workspace:*",
+		"@sd/ui": "workspace:*",
+		"@types/react": "^18.0.21",
 		"@types/react-dom": "^18.0.6",
-		"@vitejs/plugin-react": "^2.0.0",
-		"autoprefixer": "^10.4.7",
-		"postcss": "^8.4.14",
-		"tailwind": "^4.0.0",
-		"typescript": "^4.7.4",
-		"vite": "^3.0.3",
+		"@vitejs/plugin-react": "^2.1.0",
+		"autoprefixer": "^10.4.12",
+		"postcss": "^8.4.17",
+		"rollup-plugin-visualizer": "^5.9.0",
+		"typescript": "^4.8.4",
+		"vite": "^4.0.4",
+		"vite-plugin-html": "^3.2.0",
 		"vite-plugin-svgr": "^2.2.1",
-		"vite-plugin-tsconfig-paths": "^1.1.0"
+		"vite-tsconfig-paths": "^3.5.2"
 	}
 }

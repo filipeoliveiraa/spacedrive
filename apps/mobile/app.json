@@ -2,10 +2,12 @@
 	"expo": {
 		"name": "Spacedrive",
 		"slug": "spacedrive",
+		"owner": "spacedrive",
 		"version": "0.0.1",
 		"orientation": "portrait",
 		"jsEngine": "hermes",
 		"scheme": "spacedrive",
+		"platforms": ["ios", "android"],
 		"userInterfaceStyle": "automatic",
 		"updates": {
 			"enabled": false,
@@ -13,12 +15,9 @@
 		},
 		"assetBundlePatterns": ["**/*"],
 		"ios": {
-			"supportsTablet": false,
-			"bundleIdentifier": "com.spacedrive.app"
+			"supportsTablet": false
 		},
-		"android": {
-			"package": "com.spacedrive.app"
-		},
+		"android": {},
 		"privacy": "hidden"
 	}
 }

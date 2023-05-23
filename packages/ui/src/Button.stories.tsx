@@ -1,10 +1,8 @@
-import { ComponentMeta, ComponentStory } from '@storybook/react';
-import React from 'react';
-
+import { Meta, StoryFn } from '@storybook/react';
 import { Button } from './Button';
 
 export default {
-	title: 'UI/Button',
+	title: 'Button',
 	component: Button,
 	argTypes: {},
 	parameters: {
@@ -15,9 +13,9 @@ export default {
 	args: {
 		children: 'Button'
 	}
-} as ComponentMeta<typeof Button>;
+} as Meta<typeof Button>;
 
-const Template: ComponentStory<typeof Button> = (args) => <Button {...args} />;
+const Template: StoryFn<typeof Button> = (args) => <Button {...args} />;
 
 export const Default = Template.bind({});
 Default.args = {
@@ -26,11 +24,11 @@ Default.args = {
 
 export const Primary = Template.bind({});
 Primary.args = {
-	variant: 'primary'
+	variant: 'accent'
 };
 
 export const PrimarySmall = Template.bind({});
 PrimarySmall.args = {
-	variant: 'primary',
+	variant: 'accent',
 	size: 'sm'
 };

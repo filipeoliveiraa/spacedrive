@@ -1,128 +1,159 @@
-import * as ContextMenuPrimitive from '@radix-ui/react-context-menu';
-import { Root, Trigger } from '@radix-ui/react-context-menu';
+import * as RadixCM from '@radix-ui/react-context-menu';
+import { VariantProps, cva } from 'class-variance-authority';
 import clsx from 'clsx';
-import { CaretRight, Icon } from 'phosphor-react';
-import { Question } from 'phosphor-react';
-import React from 'react';
+import { CaretRight, Icon, IconProps } from 'phosphor-react';
+import { PropsWithChildren, Suspense, createContext, useContext } from 'react';
 
-export interface ContextMenuItem {
-	label: string;
-	icon?: Icon;
-	danger?: boolean;
-	active?: boolean;
-	leftItem?: React.ReactNode;
-	rightItem?: React.ReactNode;
-	onClick?: React.MouseEventHandler<HTMLDivElement>;
-
-	children?: ContextMenuSection[];
+interface ContextMenuProps extends RadixCM.MenuContentProps {
+	trigger: React.ReactNode;
 }
 
-export type ContextMenuSection = (ContextMenuItem | string)[];
+export const contextMenuClassNames = clsx(
+	'z-50 max-h-[calc(100vh-20px)] overflow-y-auto',
+	'my-2 min-w-[12rem] max-w-[16rem] py-0.5',
+	'cool-shadow bg-menu',
+	'border border-menu-line',
+	'cursor-default select-none rounded-md',
+	'animate-in fade-in'
+);
 
-export interface ContextMenuProps {
-	items?: ContextMenuSection[];
-	className?: string;
-	isChild?: boolean;
-}
+const context = createContext<boolean>(false);
+export const useContextMenu = () => useContext(context);
 
-export const ContextMenu: React.FC<ContextMenuProps> = (props) => {
-	const { items: sections = [], className, isChild, ...rest } = props;
-
-	const ContentPrimitive = isChild ? ContextMenuPrimitive.SubContent : ContextMenuPrimitive.Content;
-
+const Root = ({ trigger, children, className, ...props }: ContextMenuProps) => {
 	return (
-		<ContentPrimitive
-			sideOffset={7}
-			// onInteractOutside={(e) => {
-			// 	e.preventDefault();
-			// }}
-			alignOffset={7}
-			className={clsx(
-				'shadow-md min-w-[11rem] py-0.5 shadow-gray-300 dark:shadow-gray-750 flex flex-col select-none cursor-default bg-gray-50 text-gray-800 border-gray-200 dark:bg-gray-950 dark:text-gray-100  text-left text-sm rounded-lg ',
-				className
-			)}
-			{...rest}
-		>
-			{sections.map((sec, i) => (
-				<React.Fragment key={i}>
-					{i !== 0 && (
-						<ContextMenuPrimitive.Separator className="mx-2 border-0 border-b pointer-events-none border-b-gray-300 dark:border-b-gray-600" />
-					)}
-
-					<ContextMenuPrimitive.Group className="flex flex-col items-stretch">
-						{sec.map((item) => {
-							if (typeof item === 'string')
-								return (
-									<ContextMenuPrimitive.Label
-										key={item}
-										className="mt-1 ml-2 text-xs text-gray-400 uppercase"
-									>
-										{item}
-									</ContextMenuPrimitive.Label>
-								);
-
-							const { icon: ItemIcon } = item;
-
-							let ItemComponent:
-								| typeof ContextMenuPrimitive.Item
-								| typeof ContextMenuPrimitive.Trigger = ContextMenuPrimitive.Item;
-
-							if ((item.children?.length ?? 0) > 0)
-								ItemComponent = (({ children, ref, ...props }) => (
-									<ContextMenuPrimitive.ContextMenuSub>
-										<ContextMenuPrimitive.SubTrigger {...props}>
-											{children}
-										</ContextMenuPrimitive.SubTrigger>
-
-										<ContextMenu
-											isChild
-											items={item.children}
-											className="relative -left-1 -top-2"
-										/>
-									</ContextMenuPrimitive.ContextMenuSub>
-								)) as typeof ContextMenuPrimitive.Trigger;
-
-							return (
-								<ItemComponent
-									style={{
-										font: 'inherit',
-										textAlign: 'inherit'
-									}}
-									className={clsx(
-										'focus:outline-none group cursor-default flex-1 px-1.5 py-1 group-first:pt-1.5 [&[data-state="open"]_div]:bg-primary',
-										item.danger && 'text-red-600 dark:text-red-400',
-										item.active && 'bg-gray-100 dark:bg-gray-950'
-									)}
-									onClick={item.onClick}
-									key={item.label}
-								>
-									<div
-										className={clsx(
-											'flex py-[0.3em] flex-row items-center px-1 rounded group-focus:bg-primary group-hover:bg-primary',
-											item.danger &&
-												'group-focus:bg-red-500 group-hover:bg-red-500 group-focus:text-white group-hover:text-white'
-										)}
-									>
-										{ItemIcon && <ItemIcon size={18} />}
-										{item.leftItem}
-
-										<ContextMenuPrimitive.Label className="ml-1.5 leading-snug flex-grow text-sm font-normal">
-											{item.label}
-										</ContextMenuPrimitive.Label>
-
-										{item.rightItem}
-										{(item.children?.length ?? 0) > 0 && (
-											<CaretRight weight="fill" size={12} alt="" />
-										)}
-									</div>
-								</ItemComponent>
-							);
-						})}
-					</ContextMenuPrimitive.Group>
-				</React.Fragment>
-			))}
-		</ContentPrimitive>
+		<RadixCM.Root>
+			<RadixCM.Trigger asChild>{trigger}</RadixCM.Trigger>
+			<RadixCM.Portal>
+				<RadixCM.Content className={clsx(contextMenuClassNames, className)} {...props}>
+					<context.Provider value={true}>{children}</context.Provider>
+				</RadixCM.Content>
+			</RadixCM.Portal>
+		</RadixCM.Root>
 	);
 };
 
-export { Trigger, Root };
+export const contextMenuSeparatorClassNames = 'border-b-menu-line mx-1 my-0.5 border-b';
+
+const Separator = (props: { className?: string }) => (
+	<RadixCM.Separator className={clsx(contextMenuSeparatorClassNames, props.className)} />
+);
+
+const SubMenu = ({
+	label,
+	icon,
+	className,
+	...props
+}: RadixCM.MenuSubContentProps & ContextMenuItemProps) => {
+	return (
+		<RadixCM.Sub>
+			<RadixCM.SubTrigger className={contextMenuItemClassNames}>
+				<ContextMenuDivItem rightArrow {...{ label, icon }} />
+			</RadixCM.SubTrigger>
+			<RadixCM.Portal>
+				<Suspense fallback={null}>
+					<RadixCM.SubContent
+						className={clsx(contextMenuClassNames, '-mt-2', className)}
+						{...props}
+					/>
+				</Suspense>
+			</RadixCM.Portal>
+		</RadixCM.Sub>
+	);
+};
+
+const contextMenuItemStyles = cva(
+	[
+		'flex h-[26px] items-center space-x-2 overflow-hidden rounded px-2',
+		'text-sm text-ink',
+		'group-radix-highlighted:text-white dark:group-radix-highlighted:text-ink',
+		'group-radix-disabled:pointer-events-none group-radix-disabled:text-ink/50',
+		'group-radix-state-open:bg-accent group-radix-state-open:text-white dark:group-radix-state-open:text-ink'
+	],
+	{
+		variants: {
+			variant: {
+				default: 'group-radix-highlighted:bg-accent',
+				danger: [
+					'text-red-600 dark:text-red-400',
+					'group-radix-highlighted:text-white',
+					'group-radix-highlighted:bg-red-500'
+				]
+			}
+		},
+		defaultVariants: {
+			variant: 'default'
+		}
+	}
+);
+
+export interface ContextMenuItemProps extends VariantProps<typeof contextMenuItemStyles> {
+	icon?: Icon;
+	iconProps?: IconProps;
+	rightArrow?: boolean;
+	label?: string;
+	keybind?: string;
+}
+
+export const contextMenuItemClassNames = 'group py-0.5 outline-none px-1';
+
+const Item = ({
+	icon,
+	label,
+	rightArrow,
+	children,
+	keybind,
+	variant,
+	iconProps,
+	...props
+}: ContextMenuItemProps & RadixCM.MenuItemProps) => {
+	return (
+		<RadixCM.Item className={contextMenuItemClassNames} {...props}>
+			<ContextMenuDivItem
+				{...{ icon, iconProps, label, rightArrow, keybind, variant, children }}
+			/>
+		</RadixCM.Item>
+	);
+};
+
+export const ContextMenuDivItem = ({
+	variant,
+	children,
+	className,
+	...props
+}: PropsWithChildren<ContextMenuItemProps & { className?: string }>) => (
+	<div className={contextMenuItemStyles({ variant, className })}>
+		{children || <ItemInternals {...props} />}
+	</div>
+);
+
+const ItemInternals = ({ icon, label, rightArrow, keybind, iconProps }: ContextMenuItemProps) => {
+	const ItemIcon = icon;
+
+	return (
+		<>
+			{ItemIcon && <ItemIcon size={18} {...iconProps} />}
+			{label && <span className="flex-1 truncate">{label}</span>}
+
+			{keybind && (
+				<span className="text-xs font-medium text-menu-faint group-radix-highlighted:text-white">
+					{keybind}
+				</span>
+			)}
+			{rightArrow && (
+				<CaretRight
+					weight="fill"
+					size={12}
+					className="text-menu-faint group-radix-highlighted:text-white group-radix-state-open:text-white"
+				/>
+			)}
+		</>
+	);
+};
+
+export const ContextMenu = {
+	Root,
+	Item,
+	Separator,
+	SubMenu
+};

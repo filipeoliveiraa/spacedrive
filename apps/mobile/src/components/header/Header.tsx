@@ -3,13 +3,12 @@ import { DrawerNavigationHelpers } from '@react-navigation/drawer/lib/typescript
 import { useNavigation } from '@react-navigation/native';
 import { MotiView } from 'moti';
 import { List } from 'phosphor-react-native';
-import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { tw, twStyle } from '~/lib/tailwind';
 
-import tw from '../../lib/tailwind';
-
-const Header = () => {
+// Default header with search bar and button to open drawer
+export default function Header() {
 	const navigation = useNavigation<DrawerNavigationHelpers>();
 
 	const { top } = useSafeAreaInsets();
@@ -17,25 +16,31 @@ const Header = () => {
 	const isDrawerOpen = useDrawerStatus() === 'open';
 
 	return (
-		<View style={tw.style('mx-4 bg-gray-550 rounded-md', { marginTop: top + 10 })}>
-			<View style={tw`flex flex-row items-center h-10`}>
-				<Pressable style={tw`px-3 h-full justify-center`} onPress={() => navigation.openDrawer()}>
+		<View
+			style={twStyle('mx-4 rounded border border-app-line bg-app-overlay', {
+				marginTop: top + 10
+			})}
+		>
+			<View style={tw`flex h-10 flex-row items-center`}>
+				<Pressable
+					testID="drawer-toggle"
+					style={tw`h-full justify-center px-3`}
+					onPress={() => navigation.openDrawer()}
+				>
 					<MotiView
 						animate={{ rotate: isDrawerOpen ? '90deg' : '0deg' }}
 						transition={{ type: 'timing' }}
 					>
-						<List size={20} color={tw.color('gray-300')} weight="fill" />
+						<List size={20} color={tw.color('ink-faint')} weight="fill" />
 					</MotiView>
 				</Pressable>
 				<Pressable
-					style={tw`flex-1 h-full justify-center`}
+					style={tw`h-full flex-1 justify-center`}
 					onPress={() => navigation.navigate('Search')}
 				>
-					<Text style={tw`text-gray-300 font-semibold text-sm`}>Search</Text>
+					<Text style={tw`text-sm font-medium text-ink-dull`}>Search</Text>
 				</Pressable>
 			</View>
 		</View>
 	);
-};
-
-export default Header;
+}

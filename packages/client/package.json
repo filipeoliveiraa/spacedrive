@@ -8,31 +8,28 @@
 	],
 	"scripts": {
 		"test": "jest",
-		"dev": "tsc -w",
-		"build": "tsc",
-		"lint": "TIMING=1 eslint src --fix",
-		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
-	},
-	"jest": {
-		"preset": "scripts/jest/node"
+		"lint": "eslint src --cache",
+		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+		"typecheck": "tsc -b",
+		"build": "tsc"
 	},
 	"dependencies": {
-		"@rspc/client": "^0.0.5",
-		"@sd/core": "workspace:*",
+		"@rspc/client": "=0.0.0-main-799eec5d",
+		"@rspc/react": "=0.0.0-main-799eec5d",
 		"@sd/config": "workspace:*",
-		"@sd/interface": "workspace:*",
-		"@tanstack/react-query": "^4.0.10",
-		"eventemitter3": "^4.0.7",
-		"immer": "^9.0.15",
-		"lodash": "^4.17.21",
-		"zustand": "4.0.0"
+		"@tanstack/react-query": "^4.12.0",
+		"@zxcvbn-ts/core": "^2.1.0",
+		"@zxcvbn-ts/language-common": "^2.0.1",
+		"@zxcvbn-ts/language-en": "^2.1.0",
+		"plausible-tracker": "^0.3.8",
+		"valtio": "^1.7.4",
+		"zod": "^3.21.4"
 	},
 	"devDependencies": {
-		"@types/lodash": "^4.14.182",
-		"@types/react": "^18.0.15",
+		"@types/react": "^18.0.21",
 		"scripts": "*",
 		"tsconfig": "*",
-		"typescript": "^4.7.4"
+		"typescript": "^4.8.4"
 	},
 	"peerDependencies": {
 		"react": "^18.2.0"

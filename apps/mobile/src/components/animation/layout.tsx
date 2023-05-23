@@ -1,40 +1,56 @@
 import { MotiView, useDynamicAnimation } from 'moti';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { PropsWithChildren, ReactNode } from 'react';
+import { StyleSheet, View, ViewProps } from 'react-native';
 import { useDerivedValue, useSharedValue } from 'react-native-reanimated';
+import Layout from '~/constants/Layout';
+import { tw } from '~/lib/tailwind';
 
-import Layout from '../../constants/Layout';
-import tw from '../../lib/tailwind';
+type MotiViewProps = PropsWithChildren<ViewProps>;
 
 // Anything wrapped with FadeIn will fade in on mount.
-export const FadeInAnimation = ({ children, delay }: { children: any; delay?: number }) => (
-	<MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ type: 'timing', delay }}>
-		{children}
-	</MotiView>
-);
-
-export const FadeInUpAnimation = ({ children, delay }: { children: any; delay?: number }) => (
+export const FadeInAnimation = ({
+	children,
+	delay,
+	...props
+}: MotiViewProps & { delay?: number }) => (
 	<MotiView
-		from={{ opacity: 0, translateY: 20 }}
-		animate={{ opacity: 1, translateY: 0 }}
+		from={{ opacity: 0 }}
+		animate={{ opacity: 1 }}
 		transition={{ type: 'timing', delay }}
+		{...props}
 	>
 		{children}
 	</MotiView>
 );
 
-export const LogoAnimation = ({ children }: { children: any }) => (
+export const FadeInUpAnimation = ({
+	children,
+	delay,
+	...props
+}: MotiViewProps & { delay?: number }) => (
 	<MotiView
+		from={{ opacity: 0, translateY: 20 }}
+		animate={{ opacity: 1, translateY: 0 }}
+		transition={{ type: 'timing', delay }}
+		{...props}
+	>
+		{children}
+	</MotiView>
+);
+
+export const LogoAnimation = ({ children, ...props }: MotiViewProps) => (
+	<MotiView
+		transition={{ type: 'timing', delay: 200 }}
 		from={{ opacity: 0.8, translateY: Layout.window.width / 2 }}
 		animate={{ opacity: 1, translateY: 0 }}
-		transition={{ type: 'timing', delay: 200 }}
+		{...props}
 	>
 		{children}
 	</MotiView>
 );
 
 type AnimatedHeightProps = {
-	children?: React.ReactNode;
+	children?: ReactNode;
 	/**
 	 * If `true`, the height will automatically animate to 0. Default: `false`.
 	 */

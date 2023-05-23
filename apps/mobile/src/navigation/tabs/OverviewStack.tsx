@@ -1,7 +1,7 @@
 import { CompositeScreenProps } from '@react-navigation/native';
-import { StackScreenProps, TransitionPresets, createStackNavigator } from '@react-navigation/stack';
-
-import Header from '../../components/header/Header';
+import { StackScreenProps, createStackNavigator } from '@react-navigation/stack';
+import Header from '~/components/header/Header';
+import { tw } from '~/lib/tailwind';
 import OverviewScreen from '../../screens/Overview';
 import { SharedScreens, SharedScreensParamList } from '../SharedScreens';
 import { TabScreenProps } from '../TabNavigator';
@@ -13,9 +13,10 @@ export default function OverviewStack() {
 		<Stack.Navigator
 			initialRouteName="Overview"
 			screenOptions={{
-				headerStyle: { backgroundColor: '#08090D' },
-				headerTintColor: '#fff',
-				...TransitionPresets.ModalFadeTransition
+				headerStyle: { backgroundColor: tw.color('app-box') },
+				headerTintColor: tw.color('ink'),
+				headerTitleStyle: tw`text-base`,
+				headerBackTitleStyle: tw`text-base`
 			}}
 		>
 			<Stack.Screen name="Overview" component={OverviewScreen} options={{ header: Header }} />

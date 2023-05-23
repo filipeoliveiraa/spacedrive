@@ -1,58 +1,97 @@
-use rspc::{self, ErrorCode};
+use crate::util::error::FileIOError;
+
 use std::path::PathBuf;
+
+use rspc::{self, ErrorCode};
 use thiserror::Error;
-use tokio::io;
 use uuid::Uuid;
+
+use super::{
+	file_path_helper::FilePathError, manager::LocationManagerError, metadata::LocationMetadataError,
+};
 
 /// Error type for location related errors
 #[derive(Error, Debug)]
 pub enum LocationError {
 	// Not Found errors
-	#[error("Location not found (path: {0:?})")]
+	#[error("location not found <path='{}'>", .0.display())]
 	PathNotFound(PathBuf),
-	#[error("Location not found (uuid: {0})")]
+	#[error("location not found <uuid='{0}'>")]
 	UuidNotFound(Uuid),
-	#[error("Location not found (id: {0})")]
+	#[error("location not found <id='{0}'>")]
 	IdNotFound(i32),
 
 	// User errors
-	#[error("Location not a directory (path: {0:?})")]
+	#[error("location not a directory <path='{}'>", .0.display())]
 	NotDirectory(PathBuf),
-	#[error("Missing local_path (id: {0})")]
-	MissingLocalPath(i32),
+	#[error("could not find directory in location <path='{}'>", .0.display())]
+	DirectoryNotFound(PathBuf),
+	#[error(
+		"library exists in the location metadata file, must relink <old_path='{}', new_path='{}'>",
+		.old_path.display(),
+		.new_path.display(),
+	)]
+	NeedRelink {
+		old_path: PathBuf,
+		new_path: PathBuf,
+	},
+	#[error(
+		"this location belongs to another library, must update .spacedrive file <path='{}'>",
+		.0.display()
+	)]
+	AddLibraryToMetadata(PathBuf),
+	#[error("location metadata file not found <path='{}'>", .0.display())]
+	MetadataNotFound(PathBuf),
+	#[error("location already exists in database <path='{}'>", .0.display())]
+	LocationAlreadyExists(PathBuf),
+	#[error("nested location currently not supported <path='{}'>", .0.display())]
+	NestedLocation(PathBuf),
 
 	// Internal Errors
-	#[error("Failed to create location (uuid {uuid:?})")]
-	CreateFailure { uuid: Uuid },
-	#[error("Failed to read location dotfile (path: {1:?}); (error: {0:?})")]
-	DotfileReadFailure(io::Error, PathBuf),
-	#[error("Failed to serialize dotfile for location (at path: {1:?}); (error: {0:?})")]
-	DotfileSerializeFailure(serde_json::Error, PathBuf),
-	#[error("Dotfile location is read only (at path: {0:?})")]
-	ReadonlyDotFileLocationFailure(PathBuf),
-	#[error("Failed to write dotfile (path: {1:?}); (error: {0:?})")]
-	DotfileWriteFailure(io::Error, PathBuf),
-	#[error("Failed to open file from local os (error: {0:?})")]
-	FileReadError(io::Error),
-	#[error("Failed to read mounted volumes from local os (error: {0:?})")]
+	#[error(transparent)]
+	LocationMetadataError(#[from] LocationMetadataError),
+	#[error("failed to read location path metadata info")]
+	LocationPathFilesystemMetadataAccess(FileIOError),
+	#[error("missing metadata file for location <path='{}'>", .0.display())]
+	MissingMetadataFile(PathBuf),
+	#[error("failed to open file from local OS")]
+	FileReadError(FileIOError),
+	#[error("failed to read mounted volumes from local OS")]
 	VolumeReadError(String),
-	#[error("Failed to connect to database (error: {0:?})")]
-	IOError(io::Error),
-	#[error("Database error (error: {0:?})")]
+	#[error("database error")]
 	DatabaseError(#[from] prisma_client_rust::QueryError),
+	#[error(transparent)]
+	LocationManagerError(#[from] LocationManagerError),
+	#[error(transparent)]
+	FilePathError(#[from] FilePathError),
+	#[error(transparent)]
+	FileIO(#[from] FileIOError),
 }
 
 impl From<LocationError> for rspc::Error {
 	fn from(err: LocationError) -> Self {
 		match err {
+			// Not found errors
 			LocationError::PathNotFound(_)
 			| LocationError::UuidNotFound(_)
 			| LocationError::IdNotFound(_) => {
 				rspc::Error::with_cause(ErrorCode::NotFound, err.to_string(), err)
 			}
 
-			LocationError::NotDirectory(_) | LocationError::MissingLocalPath(_) => {
+			// User's fault errors
+			LocationError::NotDirectory(_)
+			| LocationError::NestedLocation(_)
+			| LocationError::LocationAlreadyExists(_) => {
 				rspc::Error::with_cause(ErrorCode::BadRequest, err.to_string(), err)
+			}
+
+			// Custom error message is used to differenciate these errors in the frontend
+			// TODO: A better solution would be for rspc to support sending custom data alongside errors
+			LocationError::NeedRelink { .. } => {
+				rspc::Error::with_cause(ErrorCode::Conflict, "NEED_RELINK".to_owned(), err)
+			}
+			LocationError::AddLibraryToMetadata(_) => {
+				rspc::Error::with_cause(ErrorCode::Conflict, "ADD_LIBRARY".to_owned(), err)
 			}
 
 			_ => rspc::Error::with_cause(ErrorCode::InternalServerError, err.to_string(), err),

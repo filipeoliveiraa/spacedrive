@@ -1,13 +1,11 @@
-import { Github } from '@icons-pack/react-simple-icons';
-import { Button, Input } from '@sd/ui';
+import { ReactComponent as Alert } from '@sd/assets/svgs/alert.svg';
+import { ReactComponent as Info } from '@sd/assets/svgs/info.svg';
+import { ReactComponent as Spinner } from '@sd/assets/svgs/spinner.svg';
+import { SiGithub } from '@icons-pack/react-simple-icons';
 import clsx from 'clsx';
-import React, { FormEvent, useState } from 'react';
-// import ReactCanvasConfetti from 'react-canvas-confetti';
-import { SubmitHandler, useForm } from 'react-hook-form';
-
-import { ReactComponent as Alert } from '@sd/interface/assets/svg/alert.svg';
-import { ReactComponent as Info } from '@sd/interface/assets/svg/info.svg';
-import { ReactComponent as Spinner } from '@sd/interface/assets/svg/spinner.svg';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Button, Input } from '@sd/ui';
 
 interface WaitlistInputs {
 	email: string;
@@ -22,16 +20,12 @@ export function HomeCTA() {
 	const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
 	const [fire, setFire] = useState<boolean | number>(false);
 
-	const url = import.meta.env.PROD
-		? 'https://waitlist-api.spacedrive.com'
-		: 'http://localhost:3000';
-
 	async function handleWaitlistSubmit<SubmitHandler>({ email }: WaitlistInputs) {
 		if (!email.trim().length) return;
 
 		setLoading(true);
 
-		const req = await fetch(`${url}/api/waitlist`, {
+		const req = await fetch(`/api/waitlist`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -83,13 +77,13 @@ export function HomeCTA() {
 				useWorker
 				zIndex={-1}
 			/> */}
-			<div className="z-30 flex flex-row items-center h-10 space-x-4 animation-delay-2 fade-in">
+			<div className="animation-delay-2 z-30 flex h-10 flex-row items-center space-x-4 fade-in">
 				{!showWaitlistInput ? (
 					<>
 						<Button
 							onClick={() => setShowWaitlistInput(true)}
-							className="z-30 border-0 cursor-pointer"
-							variant="primary"
+							className="z-30 cursor-pointer border-0"
+							variant="gray"
 						>
 							Join Waitlist
 						</Button>
@@ -97,9 +91,12 @@ export function HomeCTA() {
 							href="https://github.com/spacedriveapp/spacedrive"
 							target="_blank"
 							className="z-30 cursor-pointer"
-							variant="gray"
+							variant="accent"
 						>
-							<Github className="inline w-5 h-5 -mt-[4px] -ml-1 mr-2" fill="white" />
+							<SiGithub
+								className="-ml-1 mr-2 mt-[-4px] inline h-5 w-5"
+								fill="white"
+							/>
 							Star on GitHub
 						</Button>
 					</>
@@ -109,16 +106,17 @@ export function HomeCTA() {
 							{(waitlistError || waitlistSubmitted) && (
 								<div
 									className={clsx({
-										'flex flex-row items-center bg-opacity-20 border-2 my-2 px-2 rounded-md': true,
-										'bg-red-800 border-red-900': waitlistError,
-										'bg-green-800 border-green-900': !waitlistError,
+										'my-2 flex flex-row items-center rounded-md border-2 px-2':
+											true,
+										'border-red-900 bg-red-800/20': waitlistError,
+										'border-green-900 bg-green-800/20': !waitlistError,
 										'-mt-2': waitlistSubmitted
 									})}
 								>
 									{waitlistError ? (
-										<Alert className="fill-red-500 w-5 mr-1" />
+										<Alert className="mr-1 w-5 fill-red-500" />
 									) : (
-										<Info className="fill-green-500 w-5 mr-1" />
+										<Info className="mr-1 w-5 fill-green-500" />
 									)}
 									<p
 										className={clsx({
@@ -142,20 +140,24 @@ export function HomeCTA() {
 										'hidden': waitlistSubmitted,
 										'rounded-r-none': !waitlistSubmitted
 									})}
+									size="lg"
 									disabled={waitlistSubmitted}
 								/>
 								{!waitlistSubmitted && (
 									<Button
 										onClick={() => setShowWaitlistInput(true)}
-										className={clsx('z-30 border-0 rounded-l-none cursor-pointer', {
-											'opacity-50 cursor-default': loading
-										})}
+										className={clsx(
+											'z-30 cursor-pointer rounded-l-none border-0',
+											{
+												'cursor-default opacity-50': loading
+											}
+										)}
 										disabled={loading}
-										variant="primary"
+										variant="accent"
 										type="submit"
 									>
 										{loading ? (
-											<Spinner className="w-6 h-6 text-white text-opacity-40 animate-spin fill-white" />
+											<Spinner className="h-6 w-6 animate-spin fill-white text-white text-opacity-40" />
 										) : (
 											'Submit'
 										)}
@@ -167,14 +169,17 @@ export function HomeCTA() {
 				)}
 			</div>
 			<p
-				className={clsx('z-30 px-6 text-sm text-center text-gray-450 animation-delay-3 fade-in', {
-					'mt-10': waitlistError,
-					'mt-3': !waitlistError
-				})}
+				className={clsx(
+					'animation-delay-3 z-30 px-6 text-center text-sm text-gray-450 fade-in',
+					{
+						'mt-10': waitlistError,
+						'mt-3': !waitlistError
+					}
+				)}
 			>
 				{showWaitlistInput ? (
 					<>
-						We'll keep your place in the queue for early access.
+						We&apos;ll keep your place in the queue for early access.
 						<br />
 						<br />
 					</>

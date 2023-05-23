@@ -1,70 +1,140 @@
 #![cfg_attr(
-    all(not(debug_assertions), target_os = "windows"),
-    windows_subsystem = "windows"
+	all(not(debug_assertions), target_os = "windows"),
+	windows_subsystem = "windows"
 )]
 
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
-use sdcore::Node;
-use tauri::{api::path, Manager, RunEvent};
+use sd_core::{custom_uri::create_custom_uri_endpoint, Node, NodeError};
+
+use tauri::{
+	api::path, async_runtime::block_on, ipc::RemoteDomainAccessScope, plugin::TauriPlugin, Manager,
+	RunEvent, Runtime,
+};
+use tokio::{task::block_in_place, time::sleep};
 use tracing::{debug, error};
-#[cfg(target_os = "macos")]
-mod macos;
+
+#[cfg(target_os = "linux")]
+mod app_linux;
+
+mod file;
 mod menu;
 
 #[tauri::command(async)]
+#[specta::specta]
 async fn app_ready(app_handle: tauri::AppHandle) {
 	let window = app_handle.get_window("main").unwrap();
 
 	window.show().unwrap();
 }
 
+pub fn tauri_error_plugin<R: Runtime>(err: NodeError) -> TauriPlugin<R> {
+	tauri::plugin::Builder::new("spacedrive")
+		.js_init_script(format!(r#"window.__SD_ERROR__ = "{err}";"#))
+		.build()
+}
+
+macro_rules! tauri_handlers {
+	($($name:path),+) => {{
+		#[cfg(debug_assertions)]
+		tauri_specta::ts::export(specta::collect_types![$($name),+], "../src/commands.ts").unwrap();
+
+		tauri::generate_handler![$($name),+]
+	}};
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> tauri::Result<()> {
+	#[cfg(target_os = "linux")]
+	let (tx, rx) = tokio::sync::mpsc::channel(1);
+
 	let data_dir = path::data_dir()
 		.unwrap_or_else(|| PathBuf::from("./"))
 		.join("spacedrive");
 
-	let (node, router) = Node::new(data_dir).await;
+	#[cfg(debug_assertions)]
+	let data_dir = data_dir.join("dev");
 
-	let app = tauri::Builder::default()
-		.plugin(rspc::integrations::tauri::plugin(router, {
-			let node = node.clone();
-			move || node.get_request_context()
-		}))
+	let result = Node::new(data_dir).await;
+
+	let app = tauri::Builder::default();
+	let (node, app) = match result {
+		Ok((node, router)) => {
+			// This is a super cringe workaround for: https://github.com/tauri-apps/tauri/issues/3725 & https://bugs.webkit.org/show_bug.cgi?id=146351#c5
+			#[cfg(target_os = "linux")]
+			let app = app_linux::setup(app, rx, create_custom_uri_endpoint(node.clone()).axum()).await;
+			let app = app
+				.register_uri_scheme_protocol(
+					"spacedrive",
+					create_custom_uri_endpoint(node.clone()).tauri_uri_scheme("spacedrive"),
+				)
+				.plugin(rspc::integrations::tauri::plugin(router, {
+					let node = node.clone();
+					move || node.clone()
+				}))
+				.manage(node.clone());
+
+			(Some(node), app)
+		}
+		Err(err) => (None, app.plugin(tauri_error_plugin(err))),
+	};
+
+	let app = app
 		.setup(|app| {
+			#[cfg(feature = "updater")]
+			tauri::updater::builder(app.handle()).should_install(|_current, _latest| true);
+
 			let app = app.handle();
 
-			#[cfg(target_os = "macos")]
-			{
-				use macos::{lock_app_theme, AppThemeType};
-
-				lock_app_theme(AppThemeType::Dark as _);
-			}
-
 			app.windows().iter().for_each(|(_, window)| {
-				window.hide().unwrap();
+				// window.hide().unwrap();
+
+				tokio::spawn({
+					let window = window.clone();
+					async move {
+						sleep(Duration::from_secs(3)).await;
+						if !window.is_visible().unwrap_or(true) {
+							println!(
+							"Window did not emit `app_ready` event fast enough. Showing window..."
+						);
+							let _ = window.show();
+						}
+					}
+				});
 
 				#[cfg(target_os = "windows")]
 				window.set_decorations(true).unwrap();
 
 				#[cfg(target_os = "macos")]
 				{
-					use macos::*;
+					use sd_desktop_macos::*;
 
 					let window = window.ns_window().unwrap();
-					set_titlebar_style(window, true, true);
-					blur_window_background(window);
+
+					unsafe { set_titlebar_style(&window, true, true) };
+					unsafe { blur_window_background(&window) };
 				}
 			});
+
+			// Configure IPC for custom protocol
+			app.ipc_scope().configure_remote_access(
+				RemoteDomainAccessScope::new("localhost")
+					.allow_on_scheme("spacedrive")
+					.add_window("main")
+					.enable_tauri_api(),
+			);
 
 			Ok(())
 		})
 		.on_menu_event(menu::handle_menu_event)
-		.invoke_handler(tauri::generate_handler![app_ready,])
 		.menu(menu::get_menu())
-		.build(tauri::generate_context!())
-		.expect("error while building tauri application");
+		.invoke_handler(tauri_handlers![
+			app_ready,
+			file::open_file_path,
+			file::get_file_path_open_with_apps,
+			file::open_file_path_with
+		])
+		.build(tauri::generate_context!())?;
 
 	app.run(move |app_handler, event| {
 		if let RunEvent::ExitRequested { .. } = event {
@@ -79,8 +149,16 @@ async fn main() {
 					}
 				});
 
-			node.shutdown();
+			if let Some(node) = &node {
+				block_in_place(|| block_on(node.shutdown()));
+			}
+
+			#[cfg(target_os = "linux")]
+			block_in_place(|| block_on(tx.send(()))).ok();
+
 			app_handler.exit(0);
 		}
-	})
+	});
+
+	Ok(())
 }

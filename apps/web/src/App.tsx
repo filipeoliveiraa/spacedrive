@@ -1,35 +1,76 @@
-import { WebsocketTransport, createClient } from '@rspc/client';
-import { Operations, queryClient, rspc } from '@sd/client';
-import SpacedriveInterface from '@sd/interface';
-import React, { useEffect } from 'react';
+import { QueryClient, QueryClientProvider, hydrate } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { createBrowserRouter } from 'react-router-dom';
+import { RspcProvider } from '@sd/client';
+import { Platform, PlatformProvider, SpacedriveInterface, routes } from '@sd/interface';
+import demoData from './demoData.json';
 
-const client = createClient<Operations>({
-	transport: new WebsocketTransport(
-		import.meta.env.VITE_SDSERVER_BASE_URL || 'ws://localhost:8080/rspcws'
-	)
+const serverOrigin = import.meta.env.VITE_SDSERVER_ORIGIN || 'localhost:8080';
+
+// TODO: Restore this once TS is back up to functionality in rspc.
+// const wsClient = createWSClient({
+// 	url: `ws://${serverOrigin}/rspc/ws`
+// });
+
+// const client = hooks.createClient({
+// 	links: [
+// 		loggerLink({
+// 			enabled: () => getDebugState().rspcLogger
+// 		}),
+// 		wsLink({
+// 			client: wsClient
+// 		})
+// 	]
+// });
+
+const http = import.meta.env.DEV ? 'http' : 'https';
+const spacedriveProtocol = `${http}://${serverOrigin}/spacedrive`;
+
+const platform: Platform = {
+	platform: 'web',
+	getThumbnailUrlById: (casId) =>
+		`${spacedriveProtocol}/thumbnail/${encodeURIComponent(casId)}.webp`,
+	getFileUrl: (libraryId, locationLocalId, filePathId) =>
+		`${spacedriveProtocol}/file/${encodeURIComponent(libraryId)}/${encodeURIComponent(
+			locationLocalId
+		)}/${encodeURIComponent(filePathId)}`,
+	openLink: (url) => window.open(url, '_blank')?.focus(),
+	demoMode: import.meta.env.VITE_SD_DEMO_MODE === 'true'
+};
+
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: import.meta.env.VITE_SD_DEMO_MODE
+			? {
+					refetchOnWindowFocus: false,
+					staleTime: Infinity,
+					cacheTime: Infinity,
+					networkMode: 'offlineFirst',
+					enabled: false
+			  }
+			: undefined
+		// TODO: Mutations can't be globally disable which is annoying!
+	}
 });
 
+const router = createBrowserRouter(routes);
+
 function App() {
-	useEffect(() => {
-		window.parent.postMessage('spacedrive-hello', '*');
-	}, []);
+	useEffect(() => window.parent.postMessage('spacedrive-hello', '*'), []);
+
+	if (import.meta.env.VITE_SD_DEMO_MODE === 'true') {
+		hydrate(queryClient, demoData);
+	}
 
 	return (
 		<div className="App">
-			<rspc.Provider client={client} queryClient={queryClient}>
-				<SpacedriveInterface
-					demoMode
-					platform={'browser'}
-					convertFileSrc={function (url: string): string {
-						return url;
-					}}
-					openDialog={function (options: {
-						directory?: boolean | undefined;
-					}): Promise<string | string[]> {
-						return Promise.resolve([]);
-					}}
-				/>
-			</rspc.Provider>
+			<RspcProvider queryClient={queryClient}>
+				<PlatformProvider platform={platform}>
+					<QueryClientProvider client={queryClient}>
+						<SpacedriveInterface router={router} />
+					</QueryClientProvider>
+				</PlatformProvider>
+			</RspcProvider>
 		</div>
 	);
 }

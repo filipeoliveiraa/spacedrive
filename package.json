@@ -1,42 +1,59 @@
 {
-	"name": "spacedrive",
-	"version": "0.0.0",
 	"private": true,
 	"scripts": {
-		"prep": "pnpm db:gen && pnpm core codegen",
+		"prep": "pnpm gen:prisma && pnpm codegen",
 		"build": "turbo run build",
 		"landing-web": "turbo run dev --parallel --filter=@sd/landing --filter=@sd/web",
-		"db:migrate": "pnpm core prisma migrate dev",
-		"db:gen": "pnpm core prisma generate",
-		"format": "prettier --config .prettierrc.cli.js --write \"**/*.{ts,tsx,html,scss,json,yml,md}\"",
+		"gen:migrations": "cd core && cargo prisma migrate dev",
+		"gen:prisma": "cd core && cargo prisma generate",
+		"format": "prettier --write .",
 		"desktop": "pnpm --filter @sd/desktop --",
 		"web": "pnpm --filter @sd/web -- ",
+		"mobile": "pnpm --filter @sd/mobile --",
+		"core": "pnpm --filter @sd/server -- ",
 		"landing": "pnpm --filter @sd/landing -- ",
 		"ui": "pnpm --filter @sd/ui -- ",
 		"interface": "pnpm --filter @sd/interface -- ",
-		"core": "pnpm --filter @sd/core -- ",
-		"docs": "pnpm --filter @sd/docs -- ",
+		"assets": "pnpm --filter @sd/assets -- ",
 		"client": "pnpm --filter @sd/client -- ",
-		"server": "pnpm --filter @sd/server -- ",
-		"typecheck": "pnpm -r exec tsc"
+		"storybook": "pnpm --filter @sd/storybook -- ",
+		"prisma": "cd core && cargo prisma",
+		"codegen": "cargo test -p sd-core api::tests::test_and_export_rspc_bindings -- --exact",
+		"typecheck": "pnpm -r typecheck",
+		"lint": "turbo run lint",
+		"lint:fix": "turbo run lint -- --fix",
+		"clean": "rimraf -g \"node_modules/\" \"**/node_modules/\" \"target/\" \"**/.build/\" \"**/.next/\" \"**/.contentlayer/\" \"**/dist/!(.gitignore)**\""
+	},
+	"pnpm": {
+		"overrides": {
+			"@radix-ui/react-dismissable-layer": "1.0.2"
+		}
 	},
 	"devDependencies": {
+		"@babel/plugin-syntax-import-assertions": "^7.20.0",
 		"@cspell/dict-rust": "^2.0.1",
-		"@cspell/dict-typescript": "^2.0.1",
-		"@evilmartians/lefthook": "^1.0.5",
-		"@trivago/prettier-plugin-sort-imports": "^3.3.0",
-		"cspell": "^6.4.0",
-		"markdown-link-check": "^3.10.2",
-		"prettier": "^2.7.1",
-		"typescript": "^4.7.4"
+		"@cspell/dict-typescript": "^2.0.2",
+		"@storybook/react-vite": "^7.0.5",
+		"@trivago/prettier-plugin-sort-imports": "^4.1.1",
+		"cspell": "^6.12.0",
+		"prettier": "^2.8.7",
+		"prettier-plugin-tailwindcss": "^0.2.6",
+		"rimraf": "^4.3",
+		"turbo": "^1.9.3",
+		"turbo-ignore": "^0.3.0",
+		"typescript": "^4.9.4"
 	},
 	"overrides": {
-		"vite-plugin-svgr": "https://github.com/spacedriveapp/vite-plugin-svgr#cb4195b69849429cdb18d1f12381676bf9196a84"
+		"vite-plugin-svgr": "https://github.com/spacedriveapp/vite-plugin-svgr#cb4195b69849429cdb18d1f12381676bf9196a84",
+		"@types/node": "^18.0.0"
 	},
 	"engines": {
-		"pnpm": ">=6.0.0",
+		"pnpm": ">=8.0.0",
 		"npm": "pnpm",
 		"yarn": "pnpm",
-		"node": ">=14.0.0"
+		"node": ">=18.0.0"
+	},
+	"eslintConfig": {
+		"root": true
 	}
 }

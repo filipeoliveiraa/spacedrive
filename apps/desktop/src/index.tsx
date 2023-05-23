@@ -1,88 +1,14 @@
-// import Spacedrive JS client
-import { TauriTransport, createClient } from '@rspc/client';
-import { Operations, queryClient, rspc } from '@sd/client';
-import SpacedriveInterface, { Platform } from '@sd/interface';
-import { dialog, invoke, os, shell } from '@tauri-apps/api';
-import { Event, listen } from '@tauri-apps/api/event';
-import { convertFileSrc } from '@tauri-apps/api/tauri';
-import { appWindow } from '@tauri-apps/api/window';
-import React, { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
+// WARNING: Import order is important in this file. Make sure ~/patches comes before App.
+import { StrictMode, Suspense } from 'react';
+import ReactDOM from 'react-dom/client';
+import '~/patches';
+import App from './App';
 
-import '@sd/ui/style';
-
-const client = createClient<Operations>({
-	transport: new TauriTransport()
-});
-
-function App() {
-	function getPlatform(platform: string): Platform {
-		switch (platform) {
-			case 'darwin':
-				return 'macOS';
-			case 'win32':
-				return 'windows';
-			case 'linux':
-				return 'linux';
-			default:
-				return 'browser';
-		}
-	}
-
-	const [platform, setPlatform] = useState<Platform>('unknown');
-	const [focused, setFocused] = useState(true);
-
-	useEffect(() => {
-		os.platform().then((platform) => setPlatform(getPlatform(platform)));
-		invoke('app_ready');
-
-		const unlisten = listen('do_keyboard_input', (input) => {
-			document.dispatchEvent(new KeyboardEvent('keydown', input.payload as any));
-		});
-
-		return () => {
-			unlisten.then((unlisten) => unlisten());
-		};
-	}, []);
-
-	useEffect(() => {
-		const focusListener = listen('tauri://focus', () => setFocused(true));
-		const blurListener = listen('tauri://blur', () => setFocused(false));
-		const settingsNavigateListener = listen('navigate_to_settings', () => undefined);
-
-		return () => {
-			focusListener.then((unlisten) => unlisten());
-			blurListener.then((unlisten) => unlisten());
-			settingsNavigateListener.then((unlisten) => unlisten());
-		};
-	}, []);
-
-	return (
-		<rspc.Provider client={client} queryClient={queryClient}>
-			<SpacedriveInterface
-				platform={platform}
-				convertFileSrc={function (url: string): string {
-					return convertFileSrc(url);
-				}}
-				openDialog={function (options: {
-					directory?: boolean | undefined;
-				}): Promise<string | string[] | null> {
-					return dialog.open(options);
-				}}
-				isFocused={focused}
-				onClose={() => appWindow.close()}
-				onFullscreen={() => appWindow.setFullscreen(true)}
-				onMinimize={() => appWindow.minimize()}
-				onOpen={(path: string) => shell.open(path)}
-			/>
-		</rspc.Provider>
-	);
-}
-
-const root = createRoot(document.getElementById('root')!);
-
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
-	<React.StrictMode>
-		<App />
-	</React.StrictMode>
+	<StrictMode>
+		<Suspense>
+			<App />
+		</Suspense>
+	</StrictMode>
 );

@@ -1,31 +1,32 @@
-// const colors = require('tailwindcss/colors');
-// const plugin = require('tailwindcss/plugin');
 const defaultTheme = require('tailwindcss/defaultTheme');
+
+function alpha(variableName) {
+	// some tailwind magic to allow us to specify opacity with CSS variables (eg: bg-app/80)
+	// https://tailwindcss.com/docs/customizing-colors#using-css-variables
+	return `hsla(var(${variableName}), <alpha-value>)`;
+}
 
 module.exports = function (app, options) {
 	let config = {
 		content: [
-			!options?.ignorePackages && '../../packages/*/src/**/*.{js,ts,jsx,tsx,html}',
-			app ? `../../apps/${app}/src/**/*.{js,ts,jsx,tsx,html}` : `./src/**/*.{js,ts,jsx,tsx,html}`
+			`../../apps/${app}/src/**/*.{ts,tsx,html,stories.tsx}`,
+			'../../packages/*/src/**/*.{ts,tsx,html,stories.tsx}',
+			'../../interface/**/*.{ts,tsx,html,stories.tsx}'
 		],
 		darkMode: app == 'landing' ? 'class' : 'media',
-		mode: 'jit',
 		theme: {
 			screens: {
 				xs: '475px',
+				sm: '650px',
+				md: '868px',
+				lg: '1024px',
+				xl: '1280px',
 				...defaultTheme.screens
 			},
-			// fontFamily: {
-			//   sans: ['Inter', 'ui-sans-serif', 'system-ui'],
-			//   serif: ['Inter', 'ui-serif', 'Georgia'],
-			//   mono: ['ui-monospace', 'SFMono-Regular'],
-			//   display: ['Inter'],
-			//   body: ['"Inter"']
-			// },
 			fontSize: {
 				'tiny': '.65rem',
 				'xs': '.75rem',
-				'sm': '.84rem',
+				'sm': '.80rem',
 				'base': '1rem',
 				'lg': '1.125rem',
 				'xl': '1.25rem',
@@ -37,15 +38,54 @@ module.exports = function (app, options) {
 				'7xl': '5rem'
 			},
 			extend: {
-				boxShadow: {
-					box: '0px 4px 9px rgba(0, 0, 0, 0.05)',
-					backdrop: '0px 4px 66px rgba(0, 0, 0, 0.08)',
-					deep: '0px 4px 66px rgba(0, 0, 0, 0.68)'
-				},
-				bg: {
-					funky: 'linear-gradient(90.63deg,#46bcff 12.1%,#85edfb 50.85%,#e04cf8 91.09%)'
-				},
 				colors: {
+					accent: {
+						DEFAULT: alpha('--color-accent'),
+						faint: alpha('--color-accent-faint'),
+						deep: alpha('--color-accent-deep')
+					},
+					ink: {
+						DEFAULT: alpha('--color-ink'),
+						dull: alpha('--color-ink-dull'),
+						faint: alpha('--color-ink-faint')
+					},
+					sidebar: {
+						DEFAULT: alpha('--color-sidebar'),
+						box: alpha('--color-sidebar-box'),
+						line: alpha('--color-sidebar-line'),
+						divider: alpha('--color-sidebar-divider'),
+						button: alpha('--color-sidebar-button'),
+						selected: alpha('--color-sidebar-selected'),
+						shade: alpha('--color-sidebar-shade')
+					},
+					app: {
+						DEFAULT: alpha('--color-app'),
+						box: alpha('--color-app-box'),
+						darkBox: alpha('--color-app-dark-box'),
+						lightBox: alpha('--color-app-light-box'),
+						overlay: alpha('--color-app-overlay'),
+						input: alpha('--color-app-input'),
+						focus: alpha('--color-app-focus'),
+						line: alpha('--color-app-line'),
+						divider: alpha('--color-app-divider'),
+						button: alpha('--color-app-button'),
+						selected: alpha('--color-app-selected'),
+						selectedItem: alpha('--color-app-selected-item'),
+						hover: alpha('--color-app-hover'),
+						active: alpha('--color-app-active'),
+						shade: alpha('--color-app-shade'),
+						frame: alpha('--color-app-frame')
+					},
+					menu: {
+						DEFAULT: alpha('--color-menu'),
+						line: alpha('--color-menu-line'),
+						hover: alpha('--color-menu-hover'),
+						selected: alpha('--color-menu-selected'),
+						shade: alpha('--color-menu-shade'),
+						ink: alpha('--color-menu-ink'),
+						faint: alpha('--color-menu-faint')
+					},
+					// legacy support
 					primary: {
 						DEFAULT: '#2599FF',
 						50: '#FFFFFF',
@@ -82,7 +122,6 @@ module.exports = function (app, options) {
 						950: '#030303'
 					}
 				},
-				// fontFamily: { sans: ['Inter', ...defaultTheme.fontFamily.sans] }
 				extend: {
 					transitionTimingFunction: {
 						'css': 'ease',
@@ -117,14 +156,53 @@ module.exports = function (app, options) {
 				}
 			}
 		},
-		variants: {
-			extend: {}
-		},
-		plugins: [require('@tailwindcss/forms')]
+		plugins: [
+			require('@tailwindcss/forms'),
+			require('tailwindcss-animate'),
+			require('@headlessui/tailwindcss'),
+			require('tailwindcss-radix')()
+		]
 	};
 	if (app === 'landing') {
 		config.plugins.push(require('@tailwindcss/typography'));
-		config.plugins.push(require('@tailwindcss/line-clamp'));
 	}
 	return config;
 };
+
+// 	primary: {
+// 		DEFAULT: '#2599FF',
+// 		50: '#FFFFFF',
+// 		100: '#F1F8FF',
+// 		200: '#BEE1FF',
+// 		300: '#8BC9FF',
+// 		400: '#58B1FF',
+// 		500: '#2599FF',
+// 		600: '#0081F1',
+// 		700: '#0065BE',
+// 		800: '#004A8B',
+// 		900: '#002F58'
+// 	},
+// 	gray: {
+// 		DEFAULT: '#505468',
+// 		50: '#F1F1F4',
+// 		100: '#E8E9ED',
+// 		150: '#E0E1E6',
+// 		200: '#D8DAE3',
+// 		250: '#D2D4DC',
+// 		300: '#C0C2CE',
+// 		350: '#A6AABF',
+// 		400: '#9196A8',
+// 		450: '#71758A',
+// 		500: '#303544',
+// 		550: '#20222d',
+// 		600: '#171720',
+// 		650: '#121219',
+// 		700: '#121317',
+// 		750: '#0D0E11',
+// 		800: '#0C0C0F',
+// 		850: '#08090D',
+// 		900: '#060609',
+// 		950: '#030303'
+// 	}
+// },
+// fontFamily: { sans: ['Inter', ...defaultTheme.fontFamily.sans] }

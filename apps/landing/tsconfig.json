@@ -1,10 +1,40 @@
 {
-  "extends": "../../packages/config/interface.tsconfig.json",
-  "include": ["src"],
-  "ts-node": {
-    "transpileOnly": true,
-    "compilerOptions": {
-      "module": "CommonJS"
-    }
-  }
+	"compilerOptions": {
+		"module": "ESNext",
+		"target": "ESNext",
+		"lib": ["dom", "dom.iterable", "esnext"],
+		"allowJs": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"forceConsistentCasingInFileNames": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"jsx": "preserve",
+		"incremental": true,
+		"baseUrl": ".",
+		"preserveWatchOutput": true,
+		"allowSyntheticDefaultImports": true,
+		"composite": true,
+		"paths": {
+			"~/*": ["./src/*"],
+			"@contentlayer/generated": ["./.contentlayer/generated"]
+		},
+		"plugins": [
+			{
+				"name": "next"
+			}
+		]
+	},
+	"include": [
+		"next-env.d.ts",
+		"**/*.ts",
+		"**/*.tsx",
+		"src/env.js",
+		"src/drizzle.config.ts",
+		".next/types/**/*.ts"
+	],
+	"exclude": ["node_modules"]
 }

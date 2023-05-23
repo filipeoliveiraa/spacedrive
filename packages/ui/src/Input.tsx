@@ -1,72 +1,159 @@
+import { VariantProps, cva } from 'class-variance-authority';
 import clsx from 'clsx';
-import React from 'react';
+import { Eye, EyeSlash, Icon, IconProps, MagnifyingGlass } from 'phosphor-react';
+import { PropsWithChildren, createElement, forwardRef, isValidElement, useState } from 'react';
+import { Button } from './Button';
 
-const variants = {
-	default: `
-    shadow-sm
-    bg-white
-    hover:bg-white
-    focus:hover:bg-white
-    focus:bg-white
-    dark:bg-gray-550
-    dark:hover:bg-gray-550
-    dark:focus:bg-gray-800
-    dark:focus:hover:bg-gray-800
+export interface InputBaseProps extends VariantProps<typeof inputStyles> {
+	icon?: Icon | React.ReactNode;
+	iconPosition?: 'left' | 'right';
+	right?: React.ReactNode;
+}
 
-    border-gray-100
-    hover:border-gray-200
-    focus:border-white
-    dark:border-gray-500
-    dark:hover:border-gray-500
-    dark:focus:border-gray-900
+export type InputProps = InputBaseProps & Omit<React.ComponentProps<'input'>, 'size'>;
 
-    focus:ring-primary-100 
-    dark:focus:ring-gray-550
+export type TextareaProps = InputBaseProps & React.ComponentProps<'textarea'>;
 
-    dark:text-white 
-    placeholder-gray-300
-  `,
-	primary: ''
+export const inputSizes = {
+	sm: 'h-[30px]',
+	md: 'h-[34px]',
+	lg: 'h-[38px]'
 };
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-	variant?: keyof typeof variants;
-}
+export const inputStyles = cva(
+	[
+		'rounded-md border text-sm leading-7',
+		'shadow-sm outline-none transition-all focus-within:ring-2',
+		'text-ink'
+	],
+	{
+		variants: {
+			variant: {
+				default: [
+					'border-app-line bg-app-input placeholder-ink-faint focus-within:bg-app-focus',
+					'focus-within:border-app-divider/80 focus-within:ring-app-selected/30'
+				]
+			},
+			error: {
+				true: 'border-red-500 focus-within:border-red-500 focus-within:ring-red-400/30'
+			},
+			size: inputSizes
+		},
+		defaultVariants: {
+			variant: 'default',
+			size: 'sm'
+		}
+	}
+);
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ ...props }, ref) => {
-	return (
-		<input
-			ref={ref}
-			{...props}
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+	({ variant, size, right, icon, iconPosition = 'left', className, error, ...props }, ref) => (
+		<div
 			className={clsx(
-				`px-3 py-1 text-sm rounded-md border leading-7 outline-none shadow-xs focus:ring-2 transition-all`,
-				variants[props.variant || 'default'],
-				props.className
+				'group flex',
+				inputStyles({ variant, size: right && !size ? 'md' : size, error, className })
 			)}
-		/>
-	);
-});
+		>
+			<div
+				className={clsx(
+					'flex h-full flex-1 overflow-hidden',
+					iconPosition === 'right' && 'flex-row-reverse'
+				)}
+			>
+				{icon && (
+					<div
+						className={clsx(
+							'flex h-full items-center',
+							iconPosition === 'left' ? 'pl-[10px] pr-2' : 'pl-2 pr-[10px]'
+						)}
+					>
+						{isValidElement(icon)
+							? icon
+							: createElement<IconProps>(icon as Icon, {
+									size: 18,
+									className: 'text-gray-350'
+							  })}
+					</div>
+				)}
 
-interface TextAreaProps extends React.InputHTMLAttributes<HTMLTextAreaElement> {
-	variant?: keyof typeof variants;
-}
+				<input
+					className={clsx(
+						'flex-1 truncate border-none bg-transparent px-3 text-sm outline-none placeholder:text-ink-faint',
+						(right || (icon && iconPosition === 'right')) && 'pr-0',
+						icon && iconPosition === 'left' && 'pl-0'
+					)}
+					ref={ref}
+					{...props}
+				/>
+			</div>
 
-export const TextArea = ({ size, ...props }: TextAreaProps) => {
+			{right && (
+				<div
+					className={clsx(
+						'flex h-full min-w-[12px] items-center',
+						size === 'lg' ? 'px-[5px]' : 'px-1'
+					)}
+				>
+					{right}
+				</div>
+			)}
+		</div>
+	)
+);
+
+export const SearchInput = forwardRef<HTMLInputElement, InputProps>((props, ref) => (
+	<Input {...props} ref={ref} icon={MagnifyingGlass} />
+));
+
+export const TextArea = ({ size, variant, error, ...props }: TextareaProps) => {
 	return (
 		<textarea
 			{...props}
 			className={clsx(
-				`px-2 py-1 rounded-md border leading-5 outline-none shadow-xs focus:ring-2 transition-all`,
-				variants[props.variant || 'default'],
-				size && '',
+				'h-auto px-3 py-2',
+				inputStyles({ size, variant, error }),
 				props.className
 			)}
 		/>
 	);
 };
 
-export const Label: React.FC<{ slug?: string; children: string }> = (props) => (
-	<label className="text-sm font-bold" htmlFor={props.slug}>
-		{props.children}
-	</label>
-);
+export interface LabelProps extends Omit<React.ComponentProps<'label'>, 'htmlFor'> {
+	slug?: string;
+}
+
+export function Label({ slug, children, className, ...props }: LabelProps) {
+	return (
+		<label htmlFor={slug} className={clsx('text-sm font-bold', className)} {...props}>
+			{children}
+		</label>
+	);
+}
+
+interface PasswordInputProps extends InputProps {
+	buttonClassnames?: string;
+}
+
+export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>((props, ref) => {
+	const [showPassword, setShowPassword] = useState(false);
+
+	const CurrentEyeIcon = showPassword ? EyeSlash : Eye;
+
+	return (
+		<Input
+			{...props}
+			type={showPassword ? 'text' : 'password'}
+			ref={ref}
+			right={
+				<Button
+					tabIndex={0}
+					onClick={() => setShowPassword(!showPassword)}
+					size="icon"
+					className={clsx(props.buttonClassnames)}
+				>
+					<CurrentEyeIcon className="!pointer-events-none h-4 w-4" />
+				</Button>
+			}
+		/>
+	);
+});

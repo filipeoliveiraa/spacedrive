@@ -1,31 +1,24 @@
-import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
-import svgr from 'vite-plugin-svgr';
+import { Plugin, mergeConfig } from 'vite';
+import baseConfig from '../../packages/config/vite';
 
-import { name, version } from './package.json';
+const devtoolsPlugin: Plugin = {
+	name: 'devtools-plugin',
+	transformIndexHtml(html) {
+		const isDev = process.env.NODE_ENV === 'development';
+		if (isDev) {
+			const devtoolsScript = `<script src="http://localhost:8097"></script>`;
+			const headTagIndex = html.indexOf('</head>');
+			if (headTagIndex > -1) {
+				return html.slice(0, headTagIndex) + devtoolsScript + html.slice(headTagIndex);
+			}
+		}
+		return html;
+	}
+};
 
-// https://vitejs.dev/config/
-export default defineConfig({
+export default mergeConfig(baseConfig, {
 	server: {
 		port: 8001
 	},
-	plugins: [
-		react({
-			jsxRuntime: 'classic'
-		}),
-		svgr({
-			svgrOptions: {
-				icon: true
-			}
-		})
-	],
-	root: 'src',
-	publicDir: '../../packages/interface/src/assets',
-	define: {
-		pkgJson: { name, version }
-	},
-	build: {
-		outDir: '../dist',
-		assetsDir: '.'
-	}
+	plugins: [devtoolsPlugin]
 });

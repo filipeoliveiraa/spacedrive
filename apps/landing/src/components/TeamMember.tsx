@@ -1,6 +1,8 @@
-import { Github, Twitch, Twitter } from '@icons-pack/react-simple-icons';
+import { SiDribbble, SiGithub, SiTwitch, SiTwitter } from '@icons-pack/react-simple-icons';
 import clsx from 'clsx';
-import React from 'react';
+import Image from 'next/image';
+import NextLink from 'next/link';
+import { PropsWithChildren } from 'react';
 
 export interface TeamMemberProps {
 	// Name of team member
@@ -10,13 +12,14 @@ export interface TeamMemberProps {
 	role: string;
 
 	// Member's avatar
-	image: string;
+	imageUrl: string;
 
 	// Socials
 	socials?: {
 		twitter?: string;
 		twitch?: string;
 		github?: string;
+		dribbble?: string;
 	};
 
 	// Which round an investor joined at
@@ -24,23 +27,19 @@ export interface TeamMemberProps {
 }
 
 interface LinkProps {
-	// Elements inside anchor tag
-	children: React.ReactNode;
-
-	// Anchor href
 	href: string;
 }
 
-function Link(props: LinkProps) {
+function Link(props: PropsWithChildren<LinkProps>) {
 	return (
-		<a
+		<NextLink
 			className="duration-300 hover:scale-105 hover:opacity-80"
 			href={props.href}
 			rel="noreferrer"
 			target="_blank"
 		>
 			{props.children}
-		</a>
+		</NextLink>
 	);
 }
 
@@ -49,18 +48,18 @@ export function TeamMember(props: TeamMemberProps) {
 
 	return (
 		<div className="flex flex-col">
-			<img
-				src={props.image}
+			<Image
+				src={props.imageUrl}
 				role="img"
 				alt={`Portrait of ${props.name}`}
 				width={size}
 				height={size}
-				className={clsx('inline-flex m-0 rounded-md', {
-					'w-32 h-32 !xs:w-36 !xs:h-36 !sm:w-40 !sm:h-40': !props.investmentRound,
-					'lg:w-28 lg:h-28': props.investmentRound
+				className={clsx('m-0 inline-flex rounded-md', {
+					'!xs:w-36 !xs:h-36 !sm:w-40 !sm:h-40 h-32 w-32': !props.investmentRound,
+					'lg:h-28 lg:w-28': props.investmentRound
 				})}
 			/>
-			<h3 className="mt-4 mb-0 text-base">{props.name}</h3>
+			<h3 className="mb-0 mt-4 text-base">{props.name}</h3>
 			<p
 				className={clsx('text-xs', {
 					'mb-0': props.investmentRound
@@ -69,22 +68,27 @@ export function TeamMember(props: TeamMemberProps) {
 				{props.role}
 			</p>
 			{props.investmentRound && (
-				<p className="mt-0 mb-0 text-sm font-semibold text-gray-450">{props.investmentRound}</p>
+				<p className="my-0 text-sm font-semibold text-gray-450">{props.investmentRound}</p>
 			)}
-			<div className="flex flex-row mt-auto space-x-2">
+			<div className="mt-auto flex flex-row space-x-2">
 				{props.socials?.twitter && (
 					<Link href={props.socials.twitter}>
-						<Twitter className="w-[20px] h-[20px]" />
+						<SiTwitter className="h-[20px] w-[20px]" />
 					</Link>
 				)}
 				{props.socials?.github && (
 					<Link href={props.socials.github}>
-						<Github className="w-[20px] h-[20px]" />
+						<SiGithub className="h-[20px] w-[20px]" />
 					</Link>
 				)}
 				{props.socials?.twitch && (
 					<Link href={props.socials.twitch}>
-						<Twitch className="w-[20px] h-[20px]" />
+						<SiTwitch className="h-[20px] w-[20px]" />
+					</Link>
+				)}
+				{props.socials?.dribbble && (
+					<Link href={props.socials.dribbble}>
+						<SiDribbble className="h-[20px] w-[20px]" />
 					</Link>
 				)}
 			</div>
