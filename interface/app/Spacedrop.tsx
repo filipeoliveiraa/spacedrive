@@ -14,6 +14,9 @@ import { getSpacedropState, subscribeSpacedropState } from '../hooks/useSpacedro
 const { Input, useZodForm, z } = forms;
 
 export function SpacedropUI() {
+	// TODO(Spacedrop): Disable Spacedrop for now
+	return null;
+
 	useEffect(() =>
 		subscribeSpacedropState(() => {
 			dialogManager.create((dp) => <SpacedropDialog {...dp} />);
@@ -65,12 +68,12 @@ function SpacedropDialog(props: UseDialogProps) {
 			loading={doSpacedrop.isLoading}
 			ctaLabel="Send"
 			closeLabel="Cancel"
-			onSubmit={(data) =>
+			onSubmit={form.handleSubmit((data) =>
 				doSpacedrop.mutateAsync({
 					file_path: getSpacedropState().droppedFiles,
 					peer_id: data.target_peer
 				})
-			}
+			)}
 		>
 			<div className="space-y-2 py-2">
 				<Select
@@ -110,7 +113,9 @@ function SpacedropRequestDialog(
 			loading={acceptSpacedrop.isLoading}
 			ctaLabel="Send"
 			closeLabel="Cancel"
-			onSubmit={(data) => acceptSpacedrop.mutateAsync([props.dropId, data.file_path])}
+			onSubmit={form.handleSubmit((data) =>
+				acceptSpacedrop.mutateAsync([props.dropId, data.file_path])
+			)}
 			onCancelled={() => acceptSpacedrop.mutate([props.dropId, null])}
 		>
 			<div className="space-y-2 py-2">

@@ -2,7 +2,7 @@ import { getIcon, iconNames } from '@sd/assets/util';
 import clsx from 'clsx';
 import { ImgHTMLAttributes, memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ExplorerItem, useLibraryContext } from '@sd/client';
-import { ExternalObject } from '~/components';
+import { PDFViewer } from '~/components';
 import {
 	useCallbackToWatchResize,
 	useExplorerItemData,
@@ -51,13 +51,13 @@ const Thumbnail = memo(
 						videoBarsSize
 							? size && size.height >= size.width
 								? {
-										borderLeftWidth: videoBarsSize,
-										borderRightWidth: videoBarsSize
-								  }
+									borderLeftWidth: videoBarsSize,
+									borderRightWidth: videoBarsSize
+								}
 								: {
-										borderTopWidth: videoBarsSize,
-										borderBottomWidth: videoBarsSize
-								  }
+									borderTopWidth: videoBarsSize,
+									borderBottomWidth: videoBarsSize
+								}
 							: {}
 					}
 					onLoad={props.onLoad}
@@ -67,6 +67,7 @@ const Thumbnail = memo(
 					}}
 					decoding={props.decoding}
 					className={props.className}
+					draggable={false}
 				/>
 				{videoExtension && (
 					<div
@@ -74,11 +75,11 @@ const Thumbnail = memo(
 							props.cover
 								? {}
 								: size
-								? {
+									? {
 										marginTop: Math.floor(size.height / 2) - 2,
 										marginLeft: Math.floor(size.width / 2) - 2
-								  }
-								: { display: 'none' }
+									}
+									: { display: 'none' }
 						}
 						className={clsx(
 							props.cover
@@ -116,21 +117,21 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 	const platform = usePlatform();
 	const itemData = useExplorerItemData(props.data);
 	const { library } = useLibraryContext();
-	const [src, setSrc] = useState<string>('#');
+	const [src, setSrc] = useState<null | string>(null);
 	const [loaded, setLoaded] = useState<boolean>(false);
 	const [thumbType, setThumbType] = useState(ThumbType.Icon);
-	const { locationId } = useExplorerStore();
+	const { locationId: explorerLocationId } = useExplorerStore();
 
 	// useLayoutEffect is required to ensure the thumbType is always updated before the onError listener can execute,
 	// thus avoiding improper thumb types changes
 	useLayoutEffect(() => {
 		// Reset src when item changes, to allow detection of yet not updated src
-		setSrc('#');
+		setSrc(null);
 		setLoaded(false);
 
 		if (props.loadOriginal) {
 			setThumbType(ThumbType.Original);
-		} else if (itemData.hasThumbnail) {
+		} else if (itemData.hasLocalThumbnail) {
 			setThumbType(ThumbType.Thumbnail);
 		} else {
 			setThumbType(ThumbType.Icon);
@@ -138,7 +139,8 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 	}, [props.loadOriginal, itemData]);
 
 	useEffect(() => {
-		const { casId, kind, isDir, extension } = itemData;
+		const { casId, kind, isDir, extension, locationId: itemLocationId, thumbnailKey } = itemData;
+		const locationId = itemLocationId ?? explorerLocationId;
 		switch (thumbType) {
 			case ThumbType.Original:
 				if (locationId) {
@@ -147,7 +149,7 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 							library.uuid,
 							locationId,
 							props.data.item.id,
-							// Workaround Linux webview not supporting playng video and audio through custom protocol urls
+							// Workaround Linux webview not supporting playing video and audio through custom protocol urls
 							kind == 'Video' || kind == 'Audio'
 						)
 					);
@@ -156,8 +158,8 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 				}
 				break;
 			case ThumbType.Thumbnail:
-				if (casId) {
-					setSrc(platform.getThumbnailUrlById(casId));
+				if (casId && thumbnailKey) {
+					setSrc(platform.getThumbnailUrlByThumbKey(thumbnailKey));
 				} else {
 					setThumbType(ThumbType.Icon);
 				}
@@ -166,18 +168,25 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 				setSrc(getIcon(kind, isDark, extension, isDir));
 				break;
 		}
-	}, [props.data.item.id, isDark, library.uuid, itemData, platform, thumbType, locationId]);
+	}, [
+		props.data.item.id,
+		isDark,
+		library.uuid,
+		itemData,
+		platform,
+		thumbType,
+		explorerLocationId
+	]);
 
 	const onLoad = () => setLoaded(true);
 
 	const onError = () => {
 		setLoaded(false);
-		if (src !== '#')
-			setThumbType((prevThumbType) => {
-				return prevThumbType === ThumbType.Original && itemData.hasThumbnail
-					? ThumbType.Thumbnail
-					: ThumbType.Icon;
-			});
+		setThumbType((prevThumbType) => {
+			return prevThumbType === ThumbType.Original && itemData.hasLocalThumbnail
+				? ThumbType.Thumbnail
+				: ThumbType.Icon;
+		});
 	};
 
 	const { kind, extension } = itemData;
@@ -191,22 +200,22 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 			className={clsx(
 				'relative flex shrink-0 items-center justify-center',
 				size &&
-					kind !== 'Video' &&
-					thumbType !== ThumbType.Icon &&
-					'border-2 border-transparent',
+				kind !== 'Video' &&
+				thumbType !== ThumbType.Icon &&
+				'border-2 border-transparent',
 				size || ['h-full', cover ? 'w-full overflow-hidden' : 'w-[90%]'],
 				props.className
 			)}
 		>
 			{(() => {
+				if (src == null) return null;
 				switch (thumbType) {
 					case ThumbType.Original:
 						switch (extension === 'pdf' && pdfViewerEnabled() ? 'PDF' : kind) {
 							case 'PDF':
 								return (
-									<ExternalObject
-										data={src}
-										type="application/pdf"
+									<PDFViewer
+										src={src}
 										onLoad={onLoad}
 										onError={onError}
 										className={clsx(
@@ -240,6 +249,7 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 										)}
 										playsInline
 										onLoadedData={onLoad}
+										draggable={false}
 									>
 										<p>Video preview is not supported.</p>
 									</video>
@@ -252,6 +262,7 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 											onLoad={onLoad}
 											decoding={size ? 'async' : 'sync'}
 											className={clsx(childClassName, props.className)}
+											draggable={false}
 										/>
 										{props.mediaControls && (
 											<audio
@@ -288,9 +299,9 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 										'shadow shadow-black/30'
 									],
 									size &&
-										(kind === 'Video'
-											? 'border-x-0 border-black'
-											: size > 60 && 'border-2 border-app-line'),
+									(kind === 'Video'
+										? 'border-x-0 border-black'
+										: size > 60 && 'border-2 border-app-line'),
 									props.className
 								)}
 								crossOrigin={ThumbType.Original && 'anonymous'} // Here it is ok, because it is not a react attr
@@ -313,6 +324,7 @@ function FileThumb({ size, cover, ...props }: ThumbProps) {
 								onError={() => setLoaded(false)}
 								decoding={size ? 'async' : 'sync'}
 								className={clsx(childClassName, props.className)}
+								draggable={false}
 							/>
 						);
 				}

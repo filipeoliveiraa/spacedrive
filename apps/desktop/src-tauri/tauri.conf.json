@@ -42,7 +42,11 @@
 			"windows": {
 				"certificateThumbprint": null,
 				"digestAlgorithm": "sha256",
-				"timestampUrl": ""
+				"timestampUrl": "",
+				"wix": {
+					"bannerPath": "icons/WindowsBanner.bmp",
+					"dialogImagePath": "icons/WindowsDialogImage.bmp"
+				}
 			}
 		},
 		"updater": {
@@ -53,11 +57,18 @@
 			]
 		},
 		"allowlist": {
-			"all": true,
-			"notification": {
-				"all": false
+			"all": false,
+			"window": {
+				"all": true
+			},
+			"path": {
+				"all": true
+			},
+			"shell": {
+				"all": true
 			},
 			"protocol": {
+				"all": true,
 				"assetScope": ["*"]
 			},
 			"os": {

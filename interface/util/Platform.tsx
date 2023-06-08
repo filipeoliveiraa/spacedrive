@@ -6,7 +6,7 @@ export type OperatingSystem = 'browser' | 'linux' | 'macOS' | 'windows' | 'unkno
 // This could be Tauri or web.
 export type Platform = {
 	platform: 'web' | 'tauri'; // This represents the specific platform implementation
-	getThumbnailUrlById: (casId: string) => string;
+	getThumbnailUrlByThumbKey: (thumbKey: string[]) => string;
 	getFileUrl: (
 		libraryId: string,
 		locationLocalId: number,
@@ -21,6 +21,7 @@ export type Platform = {
 	saveFilePickerDialog?(): Promise<string | null>;
 	showDevtools?(): void;
 	openPath?(path: string): void;
+	openLogsDir?(): void;
 	// Opens a file path with a given ID
 	openFilePath?(library: string, id: number): any;
 	getFilePathOpenWithApps?(library: string, id: number): any;

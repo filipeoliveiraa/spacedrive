@@ -1,15 +1,14 @@
 use crate::{
 	api::CoreEvent,
 	invalidate_query,
-	job::{
-		JobError, JobInitData, JobReportUpdate, JobResult, JobState, StatefulJob, WorkerContext,
-	},
+	job::{JobError, JobReportUpdate, JobResult, JobState, WorkerContext},
 	library::Library,
 	location::{
 		file_path_helper::{file_path_for_thumbnailer, FilePathError, IsolatedFilePathData},
 		LocationId,
 	},
-	util::error::FileIOError,
+	prisma::location,
+	util::{error::FileIOError, version_manager::VersionManagerError},
 };
 
 use std::{
@@ -27,16 +26,20 @@ use image::{self, imageops, DynamicImage, GenericImageView};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tokio::{
-	fs::{self},
-	io::{self},
-	task::block_in_place,
-};
+use tokio::{fs, io, task::block_in_place};
 use tracing::{error, info, trace, warn};
 use webp::Encoder;
 
-pub mod shallow_thumbnailer_job;
+use self::thumbnailer_job::ThumbnailerJob;
+
+mod directory;
+mod shallow;
+mod shard;
 pub mod thumbnailer_job;
+
+pub use directory::*;
+pub use shallow::*;
+pub use shard::*;
 
 const THUMBNAIL_SIZE_FACTOR: f32 = 0.2;
 const THUMBNAIL_QUALITY: f32 = 30.0;
@@ -48,8 +51,15 @@ pub fn get_thumbnail_path(library: &Library, cas_id: &str) -> PathBuf {
 		.config()
 		.data_directory()
 		.join(THUMBNAIL_CACHE_DIR_NAME)
+		.join(get_shard_hex(cas_id))
 		.join(cas_id)
 		.with_extension("webp")
+}
+
+// this is used to pass the relevant data to the frontend so it can request the thumbnail
+// it supports extending the shard hex to support deeper directory structures in the future
+pub fn get_thumb_key(cas_id: &str) -> Vec<String> {
+	vec![get_shard_hex(cas_id), cas_id.to_string()]
 }
 
 #[cfg(feature = "ffmpeg")]
@@ -90,6 +100,8 @@ pub enum ThumbnailerError {
 	FilePath(#[from] FilePathError),
 	#[error(transparent)]
 	FileIO(#[from] FileIOError),
+	#[error(transparent)]
+	VersionManager(#[from] VersionManagerError),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -124,7 +136,11 @@ pub async fn generate_image_thumbnail<P: AsRef<Path>>(
 	let webp = block_in_place(|| -> Result<Vec<u8>, Box<dyn Error>> {
 		#[cfg(all(feature = "heif", target_os = "macos"))]
 		let img = {
-			let ext = file_path.as_ref().extension().unwrap().to_ascii_lowercase();
+			let ext = file_path
+				.as_ref()
+				.extension()
+				.unwrap_or_default()
+				.to_ascii_lowercase();
 			if HEIF_EXTENSIONS
 				.iter()
 				.any(|e| ext == std::ffi::OsStr::new(e))
@@ -177,7 +193,7 @@ pub async fn generate_video_thumbnail<P: AsRef<Path>>(
 pub const fn can_generate_thumbnail_for_video(video_extension: &VideoExtension) -> bool {
 	use VideoExtension::*;
 	// File extensions that are specifically not supported by the thumbnailer
-	!matches!(video_extension, Mpg | Swf | M2v | Hevc)
+	!matches!(video_extension, Mpg | Swf | M2v | Hevc | M2ts | Mts | Ts)
 }
 
 pub const fn can_generate_thumbnail_for_image(image_extension: &ImageExtension) -> bool {
@@ -209,14 +225,10 @@ fn finalize_thumbnailer(data: &ThumbnailerJobState, ctx: WorkerContext) -> JobRe
 	Ok(Some(serde_json::to_value(&data.report)?))
 }
 
-async fn process_step<SJob, Init>(
-	state: &mut JobState<SJob>,
+async fn process_step(
+	state: &mut JobState<ThumbnailerJob>,
 	ctx: WorkerContext,
-) -> Result<(), JobError>
-where
-	SJob: StatefulJob<Init = Init, Data = ThumbnailerJobState, Step = ThumbnailerJobStep>,
-	Init: JobInitData<Job = SJob>,
-{
+) -> Result<(), JobError> {
 	let step = &state.steps[0];
 
 	ctx.progress(vec![JobReportUpdate::Message(format!(
@@ -224,7 +236,21 @@ where
 		step.file_path.materialized_path
 	))]);
 
-	let step_result = inner_process_step(state, &ctx).await;
+	let data = state
+		.data
+		.as_mut()
+		.expect("critical error: missing data on job state");
+
+	let step_result = inner_process_step(
+		&step,
+		&data.location_path,
+		&data.thumbnail_dir,
+		&state.init.location,
+		&ctx.library,
+	)
+	.await;
+
+	data.report.thumbnails_created += 1;
 
 	ctx.progress(vec![JobReportUpdate::CompletedTaskCount(
 		state.step_number + 1,
@@ -233,25 +259,17 @@ where
 	step_result
 }
 
-async fn inner_process_step<SJob, Init>(
-	state: &mut JobState<SJob>,
-	ctx: &WorkerContext,
-) -> Result<(), JobError>
-where
-	SJob: StatefulJob<Init = Init, Data = ThumbnailerJobState, Step = ThumbnailerJobStep>,
-	Init: JobInitData<Job = SJob>,
-{
-	let ThumbnailerJobStep { file_path, kind } = &state.steps[0];
-	let data = state
-		.data
-		.as_ref()
-		.expect("critical error: missing data on job state");
+pub async fn inner_process_step(
+	step: &ThumbnailerJobStep,
+	location_path: &PathBuf,
+	thumbnail_dir: &PathBuf,
+	location: &location::Data,
+	library: &Library,
+) -> Result<(), JobError> {
+	let ThumbnailerJobStep { file_path, kind } = step;
 
 	// assemble the file path
-	let path = data.location_path.join(IsolatedFilePathData::from((
-		data.report.location_id,
-		file_path,
-	)));
+	let path = location_path.join(IsolatedFilePathData::from((location.id, file_path)));
 	trace!("image_file {:?}", file_path);
 
 	// get cas_id, if none found skip
@@ -264,12 +282,22 @@ where
 		return Ok(());
 	};
 
+	let thumb_dir = thumbnail_dir.join(get_shard_hex(cas_id));
+
+	// Create the directory if it doesn't exist
+	if let Err(e) = fs::create_dir_all(&thumb_dir).await {
+		error!("Error creating thumbnail directory {:#?}", e);
+	}
+
 	// Define and write the WebP-encoded file to a given path
-	let output_path = data.thumbnail_dir.join(format!("{cas_id}.webp"));
+	let output_path = thumb_dir.join(format!("{cas_id}.webp"));
 
 	match fs::metadata(&output_path).await {
 		Ok(_) => {
-			info!("Thumb exists, skipping... {}", output_path.display());
+			info!(
+				"Thumb already exists, skipping generation for {}",
+				output_path.display()
+			);
 		}
 		Err(e) if e.kind() == io::ErrorKind::NotFound => {
 			info!("Writing {:?} to {:?}", path, output_path);
@@ -288,17 +316,10 @@ where
 				}
 			}
 
-			println!("emitting new thumbnail event");
-			ctx.library.emit(CoreEvent::NewThumbnail {
-				cas_id: cas_id.clone(),
+			info!("Emitting new thumbnail event");
+			library.emit(CoreEvent::NewThumbnail {
+				thumb_key: get_thumb_key(cas_id),
 			});
-
-			state
-				.data
-				.as_mut()
-				.expect("critical error: missing data on job state")
-				.report
-				.thumbnails_created += 1;
 		}
 		Err(e) => return Err(ThumbnailerError::from(FileIOError::from((output_path, e))).into()),
 	}
