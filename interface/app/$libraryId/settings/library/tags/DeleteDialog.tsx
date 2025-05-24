@@ -1,6 +1,6 @@
-import { useLibraryMutation, usePlausibleEvent } from '@sd/client';
-import { Dialog, UseDialogProps, useDialog } from '@sd/ui';
-import { useZodForm } from '@sd/ui/src/forms';
+import { useLibraryMutation, usePlausibleEvent, useZodForm } from '@sd/client';
+import { Dialog, useDialog, UseDialogProps } from '@sd/ui';
+import { useLocale } from '~/hooks';
 
 interface Props extends UseDialogProps {
 	tagId: number;
@@ -19,15 +19,18 @@ export default (props: Props) => {
 
 	const form = useZodForm();
 
+	const { t } = useLocale();
+
 	return (
 		<Dialog
 			form={form}
 			dialog={useDialog(props)}
 			onSubmit={form.handleSubmit(() => deleteTag.mutateAsync(props.tagId))}
-			title="Delete Tag"
-			description="Are you sure you want to delete this tag? This cannot be undone and tagged files will be unlinked."
+			title={t('delete_tag')}
+			closeLabel={t('close')}
+			description={t('delete_tag_description')}
 			ctaDanger
-			ctaLabel="Delete"
+			ctaLabel={t('delete')}
 		/>
 	);
 };

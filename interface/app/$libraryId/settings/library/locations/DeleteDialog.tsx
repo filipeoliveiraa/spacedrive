@@ -1,6 +1,7 @@
-import { useLibraryMutation, usePlausibleEvent } from '@sd/client';
-import { Dialog, UseDialogProps, useDialog } from '@sd/ui';
-import { useZodForm } from '@sd/ui/src/forms';
+import { useLibraryMutation, usePlausibleEvent, useZodForm } from '@sd/client';
+import { Dialog, useDialog, UseDialogProps } from '@sd/ui';
+import { Icon } from '~/components';
+import { useLocale } from '~/hooks';
 
 interface Props extends UseDialogProps {
 	onSuccess: () => void;
@@ -19,15 +20,19 @@ export default (props: Props) => {
 
 	const form = useZodForm();
 
+	const { t } = useLocale();
+
 	return (
 		<Dialog
 			form={form}
 			onSubmit={form.handleSubmit(() => deleteLocation.mutateAsync(props.locationId))}
 			dialog={useDialog(props)}
-			title="Delete Location"
-			description="Deleting a location will also remove all files associated with it from the Spacedrive database, the files themselves will not be deleted."
+			title={t('delete_location')}
+			closeLabel={t('close')}
+			icon={<Icon name="DeleteLocation" size={28} />}
+			description={t('delete_location_description')}
 			ctaDanger
-			ctaLabel="Delete"
+			ctaLabel={t('delete')}
 		/>
 	);
 };

@@ -1,30 +1,24 @@
-import { RefObject, createContext, useContext, useRef } from 'react';
+import { useEffect } from 'react';
 import { Outlet } from 'react-router';
+
 import TopBar from '.';
-
-interface TopBarContext {
-	left: RefObject<HTMLDivElement>;
-	right: RefObject<HTMLDivElement>;
-}
-
-const TopBarContext = createContext<TopBarContext | null>(null);
+import { explorerStore } from '../Explorer/store';
+import { TopBarContext, useContextValue } from './Context';
 
 export const Component = () => {
-	const left = useRef<HTMLDivElement>(null);
-	const right = useRef<HTMLDivElement>(null);
+	const value = useContextValue();
+
+	// Reset drag state
+	useEffect(() => {
+		return () => {
+			explorerStore.drag = null;
+		};
+	}, []);
 
 	return (
-		<TopBarContext.Provider value={{ left, right }}>
-			<TopBar leftRef={left} rightRef={right} />
+		<TopBarContext.Provider value={value}>
+			<TopBar />
 			<Outlet />
 		</TopBarContext.Provider>
 	);
 };
-
-export function useTopBarContext() {
-	const ctx = useContext(TopBarContext);
-
-	if (!ctx) throw new Error('TopBarContext not found!');
-
-	return ctx;
-}
